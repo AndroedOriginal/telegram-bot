@@ -16,6 +16,13 @@ with open("config.json", "r", encoding="utf-8") as file:
 CHAT_ID = config["chat_id"]
 
 bot = Bot(TOKEN)
+asyncio.run(
+    bot.send_message(
+        chat_id=CHAT_ID,
+        text="🚀 Тест при запуске"
+    )
+)
+print("Тестовое сообщение отправлено")
 
 timezone = pytz.timezone("Europe/Moscow")
 
