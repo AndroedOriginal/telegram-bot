@@ -23,12 +23,16 @@ scheduler = BlockingScheduler(timezone=timezone)
 
 
 def send_message(text):
-    asyncio.run(
-        bot.send_message(
-            chat_id=CHAT_ID,
-            text=text
+    try:
+        asyncio.run(
+            bot.send_message(
+                chat_id=CHAT_ID,
+                text=text
+            )
         )
-    )
+        print("Сообщение отправлено!")
+    except Exception as e:
+        print(f"Ошибка: {e}")
 
 
 for message in config["messages"]:
