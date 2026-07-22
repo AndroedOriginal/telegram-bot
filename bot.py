@@ -22,25 +22,16 @@ asyncio.run(
         text="🚀 Тест при запуске"
     )
 )
-print("Тестовое сообщение отправлено")
 
 timezone = pytz.timezone("Europe/Moscow")
 
 scheduler = BlockingScheduler(timezone=timezone)
 
-
-def send_message(text):
-    try:
-        asyncio.run(
-            bot.send_message(
-                chat_id=CHAT_ID,
-                text=text
-            )
-        )
-        print("Сообщение отправлено!")
-    except Exception as e:
-        print(f"Ошибка: {e}")
-
+async def send_message(text):
+    await bot.send_message(
+        chat_id=CHAT_ID,
+        text=text
+    )
 
 for message in config["messages"]:
 
@@ -50,13 +41,11 @@ for message in config["messages"]:
     )
     print(f"Добавлено задание: {message['time']} -> {message['text']}")
     scheduler.add_job(
-        send_message,
+        lambda: asyncio.run(send_message(message["text"])),
         "cron",
         hour=hour,
-        minute=minute,
-        args=[message["text"]]
+        minute=minute
     )
-
 
 print("Бот запущен!")
 print(scheduler.get_jobs())
