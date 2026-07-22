@@ -1,12 +1,13 @@
+import os
 import json
-import pytz
 import asyncio
+import pytz
 
 from telegram import Bot
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
-TOKEN = "8852234267:AAFjbDRdfejts4NyJogTqjoYb1cuD12nDkU"
+TOKEN = os.getenv("TOKEN")
 
 
 with open("config.json", "r", encoding="utf-8") as file:
@@ -16,37 +17,57 @@ with open("config.json", "r", encoding="utf-8") as file:
 CHAT_ID = config["chat_id"]
 
 bot = Bot(TOKEN)
-asyncio.run(
-    bot.send_message(
-        chat_id=CHAT_ID,
-        text="🚀 Тест при запуске"
-    )
-)
 
 timezone = pytz.timezone("Europe/Moscow")
 
-scheduler = BlockingScheduler(timezone=timezone)
+scheduler = AsyncIOScheduler(
+    timezone=timezone
+)
+
 
 async def send_message(text):
-    await bot.send_message(
-        chat_id=CHAT_ID,
-        text=text
-    )
+    try:
+        await bot.send_message(
+            chat_id=CHAT_ID,
+            text=text
+        )
 
-for message in config["messages"]:
+        print("Сообщение отправлено:", text)
 
-    hour, minute = map(
-        int,
-        message["time"].split(":")
-    )
-    print(f"Добавлено задание: {message['time']} -> {message['text']}")
-    scheduler.add_job(
-        lambda: asyncio.run(send_message(message["text"])),
-        "cron",
-        hour=hour,
-        minute=minute
-    )
+    except Exception as e:
+        print("Ошибка отправки:", repr(e))
 
-print("Бот запущен!")
-print(scheduler.get_jobs())
-scheduler.start()
+
+async def main():
+
+    for message in config["messages"]:
+
+        hour, minute = map(
+            int,
+            message["time"].split(":")
+        )
+
+        scheduler.add_job(
+            send_message,
+            "cron",
+            hour=hour,
+            minute=minute,
+            args=[message["text"]],
+            id=f"message_{message['time']}",
+            replace_existing=True
+        )
+
+        print(
+            f"Добавлено задание: {message['time']} -> {message['text']}"
+        )
+
+
+    scheduler.start()
+
+    print("Бот запущен!")
+
+    # чтобы программа не завершилась
+    await asyncio.Event().wait()
+
+
+asyncio.run(main())
