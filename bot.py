@@ -39,7 +39,7 @@ async def send_message(text):
 
 
 async def main():
-
+    print("УНИКАЛЬНЫЙ ЗАПУСК БОТА")
     for message in config["messages"]:
 
         hour, minute = map(
