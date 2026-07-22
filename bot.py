@@ -37,7 +37,7 @@ for message in config["messages"]:
         int,
         message["time"].split(":")
     )
-
+    print(f"Добавлено задание: {message['time']} -> {message['text']}")
     scheduler.add_job(
         send_message,
         "cron",
@@ -48,5 +48,5 @@ for message in config["messages"]:
 
 
 print("Бот запущен!")
-
+print(scheduler.get_jobs())
 scheduler.start()
