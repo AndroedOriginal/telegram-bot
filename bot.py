@@ -5,7 +5,7 @@ from telegram import Bot
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-TOKEN = "8975007106:AAHhehyrQB-0-Xty9aNB59t-u78kAmgxEAw"
+TOKEN = "8852234267:AAEOoj9ug9gCLUmJ2KU3GGNWj4PEDzRuzRA"
 
 
 # Загружаем настройки
