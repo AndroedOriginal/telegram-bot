@@ -6,7 +6,7 @@ from telegram import Bot
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-TOKEN = "8852234267:AAE9gojlSr--nqrnHk3WYOBPly2TjUch-uw"
+TOKEN = "8852234267:AAFjbDRdfejts4NyJogTqjoYb1cuD12nDkU"
 
 
 with open("config.json", "r", encoding="utf-8") as file:
