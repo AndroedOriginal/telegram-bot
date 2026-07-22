@@ -7,7 +7,7 @@ from telegram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = "8852234267:AAFjbDRdfejts4NyJogTqjoYb1cuD12nDkU"
 
 
 with open("config.json", "r", encoding="utf-8") as file:
