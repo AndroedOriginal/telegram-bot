@@ -55,15 +55,16 @@ async def warn_command(
     )
 
 
+    username = user.username or user.first_name
+    
     await update.effective_chat.send_message(
         text=(
-            f"@{user.username} [{user_id}] предупреждён ({count}/3).\n\n"
-            f"*Причина*: {reason}"
+            f"@{username} [{user_id}] предупреждён ({count}/3).\n\n"
+            f"<b>Причина:</b> {reason}"
         ),
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=keyboard
     )
-
 
 
 async def cancel_warn(
