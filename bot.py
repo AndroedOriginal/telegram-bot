@@ -62,16 +62,16 @@ async def main():
      
     application.add_handler(
         MessageHandler(
-            filters.Regex("@admins"),
-            admins_command
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            welcome_new_member
         )
     )
     
     
     application.add_handler(
         MessageHandler(
-            filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            welcome_new_member
+            filters.TEXT & filters.Regex("@admins"),
+            admins_command
         )
     )
     
