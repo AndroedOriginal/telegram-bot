@@ -12,7 +12,7 @@ from telegram.ext import (
     filters
 )
 
-from handlers.admin import admins_command
+from handlers.admin import admins_report
 
 from handlers.welcome import welcome_new_member
 
@@ -62,8 +62,8 @@ async def main():
 
     application.add_handler(
         MessageHandler(
-            filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            welcome_new_member
+            filters.TEXT & ~filters.COMMAND,
+            admins_report
         )
     )
 
