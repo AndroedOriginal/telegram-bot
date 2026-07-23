@@ -15,10 +15,9 @@ async def welcome_new_member(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    for member in update.message.new_chat_members:
-
-        await update.message.reply_text(
-            WELCOME_TEXT,
-            parse_mode="HTML",
-            disable_web_page_preview=True
-        )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=WELCOME_TEXT,
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
