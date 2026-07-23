@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-
+from html import escape
 
 warnings = {}
 
@@ -56,6 +56,9 @@ async def warn_command(
 
 
     username = user.username or user.first_name
+    
+    username = escape(username)
+    reason = escape(reason)
     
     await update.effective_chat.send_message(
         text=(
