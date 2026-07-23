@@ -15,6 +15,9 @@ from telegram.ext import (
 from handlers.welcome import welcome_new_member
 
 TOKEN = os.getenv("TOKEN")
+if not TOKEN:
+    raise Exception("TOKEN не найден в Variables")
+
 application = Application.builder().token(TOKEN).build()
 
 print("TOKEN найден:", TOKEN is not None)
@@ -64,6 +67,7 @@ async def main():
     
     await application.initialize()
     await application.start()
+    await application.updater.start_polling()
 
     print("Бот запущен!")
 
