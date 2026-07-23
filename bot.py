@@ -7,17 +7,18 @@ from telegram import Bot, Update
 from handlers.schedule import setup_scheduler
 
 from telegram.ext import (
-    Application,
-    MessageHandler,
-    CommandHandler,
-    filters
+Application,
+MessageHandler,
+CommandHandler,
+CallbackQueryHandler,
+filters
 )
 
 from handlers.admin import admins_command
 
 from handlers.welcome import welcome_new_member
 
-from handlers.warn import warn_user
+from handlers.warn import warn_command, cancel_warn
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
@@ -82,6 +83,21 @@ async def main():
         MessageHandler(
             filters.TEXT & filters.Regex("@admins"),
             admins_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "warn",
+            warn_command
+        )
+    )
+    
+    
+    application.add_handler(
+        CallbackQueryHandler(
+            cancel_warn,
+            pattern="^cancel_warn_"
         )
     )
     
