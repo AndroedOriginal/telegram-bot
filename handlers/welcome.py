@@ -18,6 +18,6 @@ async def welcome_new_member(
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=WELCOME_TEXT,
-        parse_mode="Markdown",
+        parse_mode="HTML"
         disable_web_page_preview=True
     )
