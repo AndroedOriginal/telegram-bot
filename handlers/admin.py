@@ -7,7 +7,8 @@ async def admins_command(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    await update.message.reply_text(
-        "<i>Отчёт отправлен</i>",
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="<i>Отчёт отправлен</i>",
         parse_mode="HTML"
     )
