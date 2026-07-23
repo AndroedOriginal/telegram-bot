@@ -8,6 +8,6 @@ async def admins_command(
 ):
 
     await update.message.reply_text(
-        "<tg-spoiler>Отчёт отправлен</tg-spoiler>",
+        "<i>Отчёт отправлен</i>",
         parse_mode="HTML"
     )
