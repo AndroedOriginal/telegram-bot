@@ -9,12 +9,15 @@ from handlers.schedule import setup_scheduler
 from telegram.ext import (
     Application,
     MessageHandler,
+    CommandHandler,
     filters
 )
 
 from handlers.admin import admins_command
 
 from handlers.welcome import welcome_new_member
+
+from handlers.warn import warn_user
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
@@ -59,6 +62,13 @@ async def main():
 
 
     scheduler.start()
+
+    application.add_handler(
+        CommandHandler(
+            "warn",
+            warn_user
+        )
+    )
      
     application.add_handler(
         MessageHandler(
