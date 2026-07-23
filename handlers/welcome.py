@@ -20,5 +20,6 @@ async def welcome_new_member(
 
         await update.message.reply_text(
             WELCOME_TEXT,
-            parse_mode="HTML"
+            parse_mode="HTML",
+            disable_web_page_preview=True
         )
