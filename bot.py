@@ -59,18 +59,19 @@ async def main():
 
 
     scheduler.start()
-
+     
     application.add_handler(
         MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            admins_report
+            filters.Regex("@admins"),
+            admins_command
         )
     )
-
+    
+    
     application.add_handler(
         MessageHandler(
-            filters.TEXT,
-            admins_command
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            welcome_new_member
         )
     )
     
