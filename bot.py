@@ -9,13 +9,15 @@ from handlers.schedule import setup_scheduler
 
 TOKEN = os.getenv("TOKEN")
 
+print("Проверка TOKEN:")
+print(TOKEN)
+
 
 with open("config.json", "r", encoding="utf-8") as file:
     config = json.load(file)
 
 
 CHAT_ID = config["chat_id"]
-
 
 bot = Bot(TOKEN)
 
