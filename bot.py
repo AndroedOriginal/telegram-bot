@@ -9,9 +9,7 @@ from handlers.schedule import setup_scheduler
 
 TOKEN = os.getenv("TOKEN")
 
-print("Проверка TOKEN:")
-print(TOKEN)
-
+print("TOKEN найден:", TOKEN is not None)
 
 with open("config.json", "r", encoding="utf-8") as file:
     config = json.load(file)
