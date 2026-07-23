@@ -12,6 +12,8 @@ from telegram.ext import (
     filters
 )
 
+from handlers.admin import admins_command
+
 from handlers.welcome import welcome_new_member
 
 TOKEN = os.getenv("TOKEN")
@@ -62,6 +64,13 @@ async def main():
         MessageHandler(
             filters.StatusUpdate.NEW_CHAT_MEMBERS,
             welcome_new_member
+        )
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(r"^@admins$"),
+            admins_command
         )
     )
     
