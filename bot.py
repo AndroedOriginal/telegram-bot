@@ -71,8 +71,13 @@ async def main():
 
     print("Бот запущен!")
 
-
-    await asyncio.Event().wait()
+    try:
+        await asyncio.Event().wait()
+    
+    finally:
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
 
 
 asyncio.run(main())
