@@ -64,27 +64,6 @@ async def main():
 
     scheduler.start()
 
-    application.add_handler(
-        CommandHandler(
-            "warn",
-            warn_user
-        )
-    )
-     
-    application.add_handler(
-        MessageHandler(
-            filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            welcome_new_member
-        )
-    )
-    
-    
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & filters.Regex("@admins"),
-            admins_command
-        )
-    )
 
     application.add_handler(
         CommandHandler(
@@ -98,6 +77,22 @@ async def main():
         CallbackQueryHandler(
             cancel_warn,
             pattern="^cancel_warn_"
+        )
+    )
+    
+    
+    application.add_handler(
+        MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            welcome_new_member
+        )
+    )
+    
+    
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & filters.Regex("@admins"),
+            admins_command
         )
     )
     
