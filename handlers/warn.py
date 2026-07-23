@@ -1,88 +1,93 @@
-import json
-import os
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 
-FILE = "data/warnings.json"
+warnings = {}
 
 
-def load_warnings():
-    if not os.path.exists(FILE):
-        return {}
-
-    with open(FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_warnings(data):
-    with open(FILE, "w", encoding="utf-8") as f:
-        json.dump(
-            data,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
-
-
-async def warn_user(
+async def warn_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not update.message.reply_to_message:
-        await update.message.reply_text(
-            "Ответьте на сообщение пользователя, которого хотите предупредить."
+    message = update.message
+
+    if not message.reply_to_message:
+        await message.reply_text(
+            "Используй команду ответом на сообщение пользователя:\n/warn причина"
         )
         return
 
 
-    user = update.message.reply_to_message.from_user
+    user = message.reply_to_message.from_user
 
 
-    reason = " ".join(
-        context.args
-    )
+    reason = " ".join(context.args)
 
     if not reason:
         reason = "Причина не указана"
 
 
-    warnings = load_warnings()
+    user_id = user.id
 
 
-    user_id = str(user.id)
-
-
-    if user_id not in warnings:
-        warnings[user_id] = 0
-
-
-    warnings[user_id] += 1
+    warnings[user_id] = warnings.get(user_id, 0) + 1
 
 
     count = warnings[user_id]
 
 
-    save_warnings(warnings)
+    try:
+        await message.delete()
+    except:
+        pass
 
 
     keyboard = InlineKeyboardMarkup(
         [
             [
                 InlineKeyboardButton(
-                    "❌ Отменить предупреждение",
-                    callback_data=f"remove_warn_{user_id}"
+                    "❌ Отмена",
+                    callback_data=f"cancel_warn_{user_id}"
                 )
             ]
         ]
     )
 
 
-    await update.message.reply_text(
-        f"@{user.username} [{user.id}] предупреждён ({count}/3).\n\n"
-        f"<b>Причина:</b> {reason}",
-        parse_mode="HTML",
+    await update.effective_chat.send_message(
+        text=(
+            f"@{user.username} [{user_id}] предупреждён ({count}/3).\n\n"
+            f"*Причина*: {reason}"
+        ),
+        parse_mode="Markdown",
         reply_markup=keyboard
     )
+
+
+
+async def cancel_warn(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    query = update.callback_query
+
+    await query.answer()
+
+
+    data = query.data
+
+    user_id = int(
+        data.replace("cancel_warn_", "")
+    )
+
+
+    if user_id in warnings:
+        warnings[user_id] -= 1
+
+        if warnings[user_id] <= 0:
+            del warnings[user_id]
+
+
+    await query.message.delete()
