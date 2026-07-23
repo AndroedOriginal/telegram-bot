@@ -12,7 +12,7 @@ from telegram.ext import (
     filters
 )
 
-from handlers.admin import admins_report
+from handlers.admin import admins_command
 
 from handlers.welcome import welcome_new_member
 
@@ -69,7 +69,7 @@ async def main():
 
     application.add_handler(
         MessageHandler(
-            filters.Regex(r"^@admins$"),
+            filters.TEXT,
             admins_command
         )
     )
