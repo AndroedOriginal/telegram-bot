@@ -1,13 +1,13 @@
 import os
 import json
 import asyncio
-import pytz
 
 from telegram import Bot
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from handlers.schedule import setup_scheduler
 
 
-TOKEN = "8852234267:AAFjbDRdfejts4NyJogTqjoYb1cuD12nDkU"
+TOKEN = os.getenv("TOKEN")
 
 
 with open("config.json", "r", encoding="utf-8") as file:
@@ -16,13 +16,8 @@ with open("config.json", "r", encoding="utf-8") as file:
 
 CHAT_ID = config["chat_id"]
 
+
 bot = Bot(TOKEN)
-
-timezone = pytz.timezone("Europe/Moscow")
-
-scheduler = AsyncIOScheduler(
-    timezone=timezone
-)
 
 
 async def send_message(text):
@@ -40,34 +35,22 @@ async def send_message(text):
 
 
 async def main():
+
     print("УНИКАЛЬНЫЙ ЗАПУСК БОТА")
-    for message in config["messages"]:
 
-        hour, minute = map(
-            int,
-            message["time"].split(":")
-        )
 
-        scheduler.add_job(
-            send_message,
-            "cron",
-            hour=hour,
-            minute=minute,
-            args=[message["text"]],
-            id=f"message_{message['time']}",
-            replace_existing=True
-        )
-
-        print(
-            f"Добавлено задание: {message['time']} -> {message['text']}"
-        )
+    scheduler = setup_scheduler(
+        config,
+        send_message
+    )
 
 
     scheduler.start()
 
+
     print("Бот запущен!")
 
-    # чтобы программа не завершилась
+
     await asyncio.Event().wait()
 
 
