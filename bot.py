@@ -2,12 +2,20 @@ import os
 import json
 import asyncio
 
-from telegram import Bot
+from telegram import Bot, Update
 
 from handlers.schedule import setup_scheduler
 
+from telegram.ext import (
+    Application,
+    MessageHandler,
+    filters
+)
+
+from handlers.welcome import welcome_new_member
 
 TOKEN = os.getenv("TOKEN")
+application = Application.builder().token(TOKEN).build()
 
 print("TOKEN найден:", TOKEN is not None)
 
@@ -47,6 +55,15 @@ async def main():
 
     scheduler.start()
 
+    application.add_handler(
+        MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            welcome_new_member
+        )
+    )
+    
+    await application.initialize()
+    await application.start()
 
     print("Бот запущен!")
 
