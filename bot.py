@@ -29,7 +29,8 @@ async def send_message(text):
     try:
         await bot.send_message(
             chat_id=CHAT_ID,
-            text=text
+            text=text,
+            parse_mode="HTML"
         )
 
         print("Сообщение отправлено:", text)
