@@ -2,7 +2,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from html import escape
 from handlers.storage import add_warn, remove_warn
-
+from datetime import timedelta
+from telegram import ChatPermissions
 
 
 async def warn_command(
@@ -45,6 +46,22 @@ async def warn_command(
     
     count = add_warn(user_id)
 
+    if count >= 3:
+    
+        await update.effective_chat.restrict_member(
+            user_id,
+            permissions=ChatPermissions(
+                can_send_messages=False
+            ),
+            until_date=timedelta(minutes=10)
+        )
+    
+        remove_warn(user_id)
+
+        print(f"{username} получил мут на 10 минут")
+    
+        return
+    
     try:
         await message.delete()
     except:
