@@ -1,8 +1,8 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from html import escape
+from handlers.storage import add_warn, remove_warn
 
-warnings = {}
 
 
 async def warn_command(
@@ -42,13 +42,8 @@ async def warn_command(
 
 
     user_id = user.id
-
-
-    warnings[user_id] = warnings.get(user_id, 0) + 1
-
-
-    count = warnings[user_id]
-
+    
+    count = add_warn(user_id)
 
     try:
         await message.delete()
@@ -100,11 +95,7 @@ async def cancel_warn(
     )
 
 
-    if user_id in warnings:
-        warnings[user_id] -= 1
-
-        if warnings[user_id] <= 0:
-            del warnings[user_id]
+    remove_warn(user_id)
 
 
     await query.message.delete()
