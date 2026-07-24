@@ -28,6 +28,9 @@ def save_warnings(data):
 
     print("FILE SAVED")
 
+    with open(FILE, "r", encoding="utf-8") as f:
+        print("FILE CONTENT:", f.read())
+
 
 warnings = load_warnings()
 
