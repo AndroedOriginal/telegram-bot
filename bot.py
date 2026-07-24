@@ -24,7 +24,21 @@ TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     raise Exception("TOKEN не найден в Variables")
 
-application = Application.builder().token(TOKEN).build()
+from telegram.request import HTTPXRequest
+
+request = HTTPXRequest(
+    connect_timeout=30,
+    read_timeout=30,
+    write_timeout=30,
+    pool_timeout=30
+)
+
+application = (
+    Application.builder()
+    .token(TOKEN)
+    .request(request)
+    .build()
+)
 
 print("TOKEN найден:", TOKEN is not None)
 
