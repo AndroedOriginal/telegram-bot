@@ -16,6 +16,8 @@ def load_warnings():
 
 
 def save_warnings(data):
+    print("SAVE DATA:", data)
+
     with open(FILE, "w", encoding="utf-8") as f:
         json.dump(
             data,
@@ -23,6 +25,8 @@ def save_warnings(data):
             ensure_ascii=False,
             indent=4
         )
+
+    print("FILE SAVED")
 
 
 warnings = load_warnings()
