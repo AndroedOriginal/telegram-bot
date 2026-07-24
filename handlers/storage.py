@@ -1,7 +1,7 @@
 import json
 import os
 
-FILE = "warnings.json"
+FILE = os.path.join(os.path.dirname(__file__), "warnings.json")
 
 
 def load_warnings():
@@ -35,34 +35,28 @@ def get_warns(user_id):
 def add_warn(user_id):
     uid = str(user_id)
 
-    print("ДОБАВЛЯЕМ ВАРН:", uid)
+    warnings[uid] = warnings.get(uid, 0) + 1
 
-    data = load_warnings()
+    save_warnings(warnings)
 
-    data[uid] = data.get(uid, 0) + 1
+    print("WARN SAVE:", warnings)
 
-    print("НОВЫЕ ДАННЫЕ:", data)
-
-    save_warnings(data)
-
-    print("ФАЙЛ СОХРАНЕН")
-
-    return data[uid]
+    return warnings[uid]
 
 
 def remove_warn(user_id):
     uid = str(user_id)
 
-    data = load_warnings()
-
-    if uid not in data:
+    if uid not in warnings:
         return 0
 
-    data[uid] -= 1
+    warnings[uid] -= 1
 
-    if data[uid] <= 0:
-        del data[uid]
+    if warnings[uid] <= 0:
+        del warnings[uid]
 
-    save_warnings(data)
+    save_warnings(warnings)
 
-    return data.get(uid, 0)
+    print("WARN REMOVE:", warnings)
+
+    return warnings.get(uid, 0)
