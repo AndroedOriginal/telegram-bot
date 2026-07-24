@@ -12,6 +12,19 @@ async def warn_command(
 
     message = update.message
 
+    admins = await context.bot.get_chat_administrators(
+        update.effective_chat.id
+    )
+
+    admin_ids = [admin.user.id for admin in admins]
+
+    if update.effective_user.id not in admin_ids:
+        try:
+            await message.delete()
+        except:
+            pass
+        return
+
     if not message.reply_to_message:
         await message.reply_text(
             "Используй команду ответом на сообщение пользователя:\n/warn причина"
