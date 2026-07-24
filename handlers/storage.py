@@ -67,3 +67,11 @@ def remove_warn(user_id):
     print("WARN REMOVE:", warnings)
 
     return warnings.get(uid, 0)
+
+def reset_warn(user_id):
+    uid = str(user_id)
+
+    if uid in warnings:
+        del warnings[uid]
+
+    save_warnings(warnings)
