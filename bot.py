@@ -20,6 +20,8 @@ from handlers.welcome import welcome_new_member
 
 from handlers.warn import warn_command, cancel_warn
 
+from handlers.unmute import unmute_command
+
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     raise Exception("TOKEN не найден в Variables")
@@ -107,6 +109,13 @@ async def main():
         MessageHandler(
             filters.TEXT & filters.Regex("@admins"),
             admins_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "unmute",
+            unmute_command
         )
     )
     
