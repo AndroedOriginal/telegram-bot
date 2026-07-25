@@ -1,10 +1,3 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-from html import escape
-from handlers.storage import add_warn, remove_warn
-from datetime import timedelta
-from telegram import ChatPermissions
-from datetime import timedelta
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -12,12 +5,16 @@ from telegram import (
     ChatPermissions
 )
 
+from telegram.ext import ContextTypes
+
+from html import escape
+from datetime import timedelta
+
 from handlers.storage import (
     add_warn,
     remove_warn,
     reset_warn
 )
-
 async def warn_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -61,14 +58,15 @@ async def warn_command(
     
     if count >= 3:
     
-        await update.effective_chat.restrict_member(
+        await context.bot.restrict_chat_member(
+            chat_id=update.effective_chat.id,
             user_id=user_id,
             permissions=ChatPermissions(
                 can_send_messages=False
             ),
             until_date=timedelta(minutes=10)
         )
-    
+            
         reset_warn(user_id)
     
         try:
