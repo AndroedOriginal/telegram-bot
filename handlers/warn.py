@@ -72,7 +72,11 @@ async def warn_command(
     # ====== 3 предупреждения -> мут ======
 
     if count >= 3:
-
+        
+        from datetime import datetime, timedelta
+        
+        until = datetime.now() + timedelta(minutes=10)
+        
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user_id,
@@ -88,7 +92,7 @@ async def warn_command(
                 can_send_other_messages=False,
                 can_add_web_page_previews=False
             ),
-            until_date=timedelta(minutes=10)
+            until_date=until
         )
 
         reset_warn(user_id)
