@@ -57,20 +57,32 @@ async def warn_command(
     user_id = user.id
     
     count = add_warn(user_id)
-
+    username = user.username or user.first_name
+    
     if count >= 3:
     
         await update.effective_chat.restrict_member(
-            user_id,
+            user_id=user_id,
             permissions=ChatPermissions(
                 can_send_messages=False
             ),
             until_date=timedelta(minutes=10)
         )
     
-        remove_warn(user_id)
-
-        print(f"{username} получил мут на 10 минут")
+        reset_warn(user_id)
+    
+        try:
+            await message.delete()
+        except:
+            pass
+    
+        await update.effective_chat.send_message(
+            text=(
+                f"🔇 @{username} получил мут на <b>10 минут</b>.\n\n"
+                f"<b>Причина:</b> {reason}"
+            ),
+            parse_mode="HTML"
+        )
     
         return
     
