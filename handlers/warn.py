@@ -2,9 +2,8 @@ from telegram import (
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ChatPermissions
+    ChatPermissions,
 )
-
 from telegram.ext import ContextTypes
 
 from html import escape
@@ -28,12 +27,8 @@ async def warn_command(
         update.effective_chat.id
     )
 
-    admin_ids = [
-        admin.user.id
-        for admin in admins
-    ]
+    admin_ids = [admin.user.id for admin in admins]
 
-    # Только администраторы могут использовать /warn
     if update.effective_user.id not in admin_ids:
         try:
             await message.delete()
@@ -41,7 +36,6 @@ async def warn_command(
             pass
         return
 
-    # Команда должна быть ответом
     if not message.reply_to_message:
         await message.reply_text(
             "Используй команду ответом на сообщение пользователя:\n/warn причина"
@@ -49,57 +43,39 @@ async def warn_command(
         return
 
     user = message.reply_to_message.from_user
+    user_id = user.id
 
     reason = " ".join(context.args)
 
     if not reason:
         reason = "Причина не указана"
 
-    user_id = user.id
-
     count = add_warn(user_id)
 
-    username = user.username or user.first_name
-
-    username = escape(username)
-    reason = escape(reason)
-
+    # Удаляем команду
     try:
         await message.delete()
     except:
         pass
 
-    # ====== 3 предупреждения -> мут ======
+    # ======= Третий варн =======
 
     if count >= 3:
-        
-        from datetime import datetime, timedelta
-        
-        until = datetime.now() + timedelta(minutes=10)
-        
+
         await context.bot.restrict_chat_member(
             chat_id=update.effective_chat.id,
             user_id=user_id,
             permissions=ChatPermissions(
-                can_send_messages=False,
-                can_send_audios=False,
-                can_send_documents=False,
-                can_send_photos=False,
-                can_send_videos=False,
-                can_send_video_notes=False,
-                can_send_voice_notes=False,
-                can_send_polls=False,
-                can_send_other_messages=False,
-                can_add_web_page_previews=False
+                can_send_messages=False
             ),
-            until_date=until
+            until_date=timedelta(minutes=10)
         )
 
         reset_warn(user_id)
 
         return
 
-    # ====== обычное предупреждение ======
+    # ======= Первый и второй =======
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -111,6 +87,11 @@ async def warn_command(
             ]
         ]
     )
+
+    username = user.username or user.first_name
+
+    username = escape(username)
+    reason = escape(reason)
 
     await update.effective_chat.send_message(
         text=(
@@ -132,7 +113,10 @@ async def cancel_warn(
     await query.answer()
 
     user_id = int(
-        query.data.replace("cancel_warn_", "")
+        query.data.replace(
+            "cancel_warn_",
+            ""
+        )
     )
 
     remove_warn(user_id)
