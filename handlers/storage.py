@@ -75,3 +75,11 @@ def reset_warn(user_id):
         del warnings[uid]
 
     save_warnings(warnings)
+
+def reset_warn(user_id):
+    uid = str(user_id)
+
+    if uid in warnings:
+        del warnings[uid]
+
+    save_warnings(warnings)
