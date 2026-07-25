@@ -9,7 +9,8 @@ async def unmute_command(
 
     message = update.message
 
-    # Проверяем администратора
+
+    # Проверка администратора
     admins = await context.bot.get_chat_administrators(
         update.effective_chat.id
     )
@@ -19,7 +20,9 @@ async def unmute_command(
         for admin in admins
     ]
 
+
     if update.effective_user.id not in admin_ids:
+
         try:
             await message.delete()
         except:
@@ -28,7 +31,8 @@ async def unmute_command(
         return
 
 
-    # Проверяем ответ
+
+    # Проверка ответа на сообщение
     if not message.reply_to_message:
 
         try:
@@ -40,20 +44,21 @@ async def unmute_command(
         return
 
 
+
     user = message.reply_to_message.from_user
 
 
-    # Снимаем ограничения
+
+    # Снятие мута
     await context.bot.restrict_chat_member(
         chat_id=update.effective_chat.id,
         user_id=user.id,
         permissions=ChatPermissions(
             can_send_messages=True,
-            can_send_media_messages=True,
-            can_send_other_messages=True,
-            can_add_web_page_previews=True
+            can_send_other_messages=True
         )
     )
+
 
 
     # Удаляем команду
@@ -61,6 +66,12 @@ async def unmute_command(
         await message.delete()
     except:
         pass
+
+
+
+    print(
+        f"UNMUTE: {user.username or user.first_name} ({user.id})"
+    )
 
 
     print(
