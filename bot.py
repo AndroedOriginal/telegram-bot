@@ -30,6 +30,8 @@ from telegram.request import HTTPXRequest
 
 from handlers.rules import rules_command
 
+from handlers.msg import msg_command
+
 request = HTTPXRequest(
     connect_timeout=30,
     read_timeout=30,
@@ -125,6 +127,13 @@ async def main():
         CommandHandler(
             "rules",
             rules_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "msg",
+            msg_command
         )
     )
     
