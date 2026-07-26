@@ -34,6 +34,8 @@ from handlers.msg import msg_command
 
 from handlers.ban import ban_command, unban_callback
 
+from handlers.mute import mute_command
+
 request = HTTPXRequest(
     connect_timeout=30,
     read_timeout=30,
@@ -151,6 +153,13 @@ async def main():
         CallbackQueryHandler(
             unban_callback,
             pattern="unban"
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "mute",
+            mute_command
         )
     )
     
