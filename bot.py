@@ -28,6 +28,8 @@ if not TOKEN:
 
 from telegram.request import HTTPXRequest
 
+from handlers.rules import rules_command
+
 request = HTTPXRequest(
     connect_timeout=30,
     read_timeout=30,
@@ -116,6 +118,13 @@ async def main():
         CommandHandler(
             "unmute",
             unmute_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "rules",
+            rules_command
         )
     )
     
