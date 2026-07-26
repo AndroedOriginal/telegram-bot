@@ -132,7 +132,7 @@ async def main():
 
     application.add_handler(
         CommandHandler(
-            "msg",
+            "send",
             msg_command
         )
     )
