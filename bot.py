@@ -32,6 +32,8 @@ from handlers.rules import rules_command
 
 from handlers.msg import msg_command
 
+from handlers.ban import ban_command, unban_callback
+
 request = HTTPXRequest(
     connect_timeout=30,
     read_timeout=30,
@@ -134,6 +136,21 @@ async def main():
         CommandHandler(
             "send",
             msg_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "ban",
+            ban_command
+        )
+    )
+    
+    
+    application.add_handler(
+        CallbackQueryHandler(
+            unban_callback,
+            pattern="unban"
         )
     )
     
