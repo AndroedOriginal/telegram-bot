@@ -36,6 +36,8 @@ from handlers.ban import ban_command, unban_callback
 
 from handlers.mute import mute_command
 
+from handlers.owner import owner_command
+
 request = HTTPXRequest(
     connect_timeout=30,
     read_timeout=30,
@@ -160,6 +162,13 @@ async def main():
         CommandHandler(
             "mute",
             mute_command
+        )
+    )
+
+    application.add_handler(
+        CommandHandler(
+            "owner",
+            owner_command
         )
     )
     
