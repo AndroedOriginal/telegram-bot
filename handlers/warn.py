@@ -107,18 +107,33 @@ async def cancel_warn(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     query = update.callback_query
+
+    # Проверяем, является ли нажавший администратором
+    admins = await context.bot.get_chat_administrators(
+        update.effective_chat.id
+    )
+
+    admin_ids = [admin.user.id for admin in admins]
+
+    if update.effective_user.id not in admin_ids:
+        await query.answer(
+            "⚠️У вас нету разрешений для выполнения этого действия",
+            show_alert=True
+        )
+        return
 
     await query.answer()
 
+    data = query.data
+
     user_id = int(
-        query.data.replace(
-            "cancel_warn_",
-            ""
-        )
+        data.replace("cancel_warn_", "")
     )
 
+    remove_warn(user_id)
+
+    await query.message.delete()
     remove_warn(user_id)
 
     await query.message.delete()
