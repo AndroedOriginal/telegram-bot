@@ -1,6 +1,6 @@
 from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import re
 
 
@@ -10,36 +10,43 @@ async def mute_command(
 ):
 
     message = update.message
+    chat = update.effective_chat
 
-    # Только админы
-    admins = await context.bot.get_chat_administrators(
-        update.effective_chat.id
-    )
+    # =========================
+    # ТОЛЬКО АДМИНИСТРАТОРЫ
+    # =========================
 
+    admins = await context.bot.get_chat_administrators(chat.id)
     admin_ids = [admin.user.id for admin in admins]
 
     if update.effective_user.id not in admin_ids:
         try:
             await message.delete()
-        except:
+        except Exception:
             pass
         return
 
-    # Команда должна быть ответом на сообщение
+    # =========================
+    # КОМАНДА ДОЛЖНА БЫТЬ REPLY
+    # =========================
+
     if not message.reply_to_message:
         try:
             await message.delete()
-        except:
+        except Exception:
             pass
         return
 
     user = message.reply_to_message.from_user
     user_id = user.id
 
-    # По умолчанию — навсегда
-    until_date = None
+    # =========================
+    # ВРЕМЯ МУТА
+    # =========================
 
-    # Если указано время
+    until_date = None
+    duration_text = "навсегда"
+
     if context.args:
 
         time_text = context.args[0].lower()
@@ -52,40 +59,71 @@ async def mute_command(
         if not match:
             try:
                 await message.delete()
-            except:
+            except Exception:
                 pass
+
+            print(
+                f"MUTE ERROR: неправильное время: {time_text}"
+            )
             return
 
         value = int(match.group(1))
         unit = match.group(2)
 
         if unit == "m":
-            until_date = timedelta(minutes=value)
+            duration = timedelta(minutes=value)
 
         elif unit == "h":
-            until_date = timedelta(hours=value)
+            duration = timedelta(hours=value)
 
         elif unit == "d":
-            until_date = timedelta(days=value)
+            duration = timedelta(days=value)
 
-    # Выдаём мут
-    await context.bot.restrict_chat_member(
-        chat_id=update.effective_chat.id,
-        user_id=user_id,
-        permissions=ChatPermissions(
-            can_send_messages=False
-        ),
-        until_date=until_date
-    )
+        else:
+            return
 
-    # Удаляем команду
+        # ВАЖНО:
+        # Telegram нужен момент окончания,
+        # а не timedelta.
+        until_date = datetime.now(timezone.utc) + duration
+
+        duration_text = time_text
+
+    # =========================
+    # МУТИМ
+    # =========================
+
+    try:
+
+        await context.bot.restrict_chat_member(
+            chat_id=chat.id,
+            user_id=user_id,
+
+            permissions=ChatPermissions(
+                can_send_messages=False
+            ),
+
+            until_date=until_date
+        )
+
+        print(
+            f"MUTE: {user_id} | "
+            f"время: {duration_text} | "
+            f"до: {until_date}"
+        )
+
+    except Exception as e:
+
+        print(
+            f"MUTE ERROR: {user_id} | "
+            f"{repr(e)}"
+        )
+
+    # =========================
+    # УДАЛЯЕМ КОМАНДУ
+    # =========================
+
     try:
         await message.delete()
-    except:
+    except Exception:
         pass
-
-    print(
-        f"MUTE: {user_id} | "
-        f"время: {'навсегда' if until_date is None else context.args[0]}"
-    )uration}"
-    )
