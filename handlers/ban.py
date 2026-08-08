@@ -112,47 +112,34 @@ async def unban_callback(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     query = update.callback_query
+
+    # Проверяем права
+    admins = await context.bot.get_chat_administrators(
+        update.effective_chat.id
+    )
+
+    admin_ids = [admin.user.id for admin in admins]
+
+    if update.effective_user.id not in admin_ids:
+        await query.answer(
+            "⚠️У вас нету разрешений для выполнения этого действия",
+            show_alert=True
+        )
+        return
 
     await query.answer()
 
-
-    # проверяем администратора
-    admins = await context.bot.get_chat_administrators(
-        query.message.chat.id
-    )
-
-
-    admin_ids = [
-        admin.user.id
-        for admin in admins
-    ]
-
-
-    if query.from_user.id not in admin_ids:
-        return
-
-
+    # Остальной код снятия бана
+    data = query.data
 
     user_id = int(
-        query.data.replace(
-            "unban_",
-            ""
-        )
+        data.replace("unban_", "")
     )
-
 
     await context.bot.unban_chat_member(
-        chat_id=query.message.chat.id,
-        user_id=user_id,
-        only_if_banned=True
+        chat_id=update.effective_chat.id,
+        user_id=user_id
     )
-
-
-    print(
-        f"UNBAN: {user_id}"
-    )
-
 
     await query.message.delete()
