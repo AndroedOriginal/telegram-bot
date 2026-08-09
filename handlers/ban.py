@@ -12,7 +12,6 @@ async def ban_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     message = update.message
     chat = update.effective_chat
 
@@ -33,41 +32,32 @@ async def ban_command(
             pass
         return
 
-
     # нужен ответ на сообщение
     if not message.reply_to_message:
-
         await message.reply_text(
             "Используй /ban ответом на сообщение пользователя"
         )
         return
 
-
     target = message.reply_to_message.from_user
-
 
     # нельзя банить админов
     if target.id in admin_ids:
-
         await message.delete()
 
         await message.reply_text(
             "❌ Нельзя заблокировать администратора"
         )
-
         return
-
 
     reason = " ".join(context.args)
 
     if not reason:
         reason = "Причина не указана"
 
-
     username = escape(
         target.username or target.first_name
     )
-
 
     # бан
     await context.bot.ban_chat_member(
@@ -75,14 +65,11 @@ async def ban_command(
         user_id=target.id
     )
 
-
     # удаляем команду
     try:
         await message.delete()
     except:
         pass
-
-
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -95,7 +82,6 @@ async def ban_command(
         ]
     )
 
-
     await chat.send_message(
         text=(
             f"@{username} [{target.id}] "
@@ -105,7 +91,6 @@ async def ban_command(
         parse_mode="HTML",
         reply_markup=keyboard
     )
-
 
 
 async def unban_callback(
