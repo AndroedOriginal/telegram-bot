@@ -38,6 +38,12 @@ async def msg_command(
 
     text = " ".join(context.args)
 
+    # Если /send использован ответом на сообщение — отвечаем на него же
+    reply_to_id = None
+
+    if message.reply_to_message:
+        reply_to_id = message.reply_to_message.message_id
+
 
     # Удаляем команду
     try:
@@ -48,7 +54,9 @@ async def msg_command(
 
     # Отправляем сообщение от имени бота
     await update.effective_chat.send_message(
-        text=text
+        text=text,
+        reply_to_message_id=reply_to_id,
+        allow_sending_without_reply=True
     )
 
     print(
