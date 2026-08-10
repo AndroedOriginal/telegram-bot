@@ -14,13 +14,14 @@ from telegram.request import HTTPXRequest
 from handlers.schedule import setup_scheduler
 from handlers.admin import admins_command
 from handlers.welcome import welcome_new_member
-from handlers.warn import warn_command, cancel_warn
+from handlers.warn import warn_command, cancel_warn, unwarn_command
 from handlers.unmute import unmute_command
 from handlers.rules import rules_command
 from handlers.msg import msg_command
-from handlers.ban import ban_command, unban_callback
+from handlers.ban import ban_command, unban_callback, unban_command
 from handlers.mute import mute_command
 from handlers.owner import owner_command
+from utils.targeting import remember_message_sender
 
 
 TOKEN = os.getenv("TOKEN")
@@ -99,6 +100,18 @@ application.add_handler(
 )
 
 
+# Запоминаем всех, кто пишет в чат, чтобы команды модерации можно было
+# использовать по @username, а не только ответом на сообщение.
+# group=1, чтобы не мешать остальным обработчикам в группе 0.
+application.add_handler(
+    MessageHandler(
+        filters.ALL,
+        remember_message_sender
+    ),
+    group=1
+)
+
+
 application.add_handler(
     MessageHandler(
         filters.TEXT & filters.Regex("@admins"),
@@ -149,6 +162,22 @@ application.add_handler(
 
 application.add_handler(
     CommandHandler(
+        "unban",
+        unban_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "unwarn",
+        unwarn_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
         "mute",
         mute_command
     )
@@ -168,9 +197,15 @@ scheduler = setup_scheduler(
     send_message
 )
 
-scheduler.start()
 
-print("Планировщик запущен")
+async def start_scheduler(app):
+    # AsyncIOScheduler.start() требует уже запущенный event loop,
+    # поэтому запускаем его тут, а не на верхнем уровне модуля.
+    scheduler.start()
+    print("Планировщик запущен")
+
+
+application.post_init = start_scheduler
 
 
 print("УНИКАЛЬНЫЙ ЗАПУСК БОТА")

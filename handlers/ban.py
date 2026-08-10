@@ -7,6 +7,8 @@ from telegram import (
 from telegram.ext import ContextTypes
 from html import escape
 
+from utils.targeting import resolve_target
+
 
 async def ban_command(
     update: Update,
@@ -32,17 +34,19 @@ async def ban_command(
             pass
         return
 
-    # нужен ответ на сообщение
-    if not message.reply_to_message:
-        await message.reply_text(
-            "Используй /ban ответом на сообщение пользователя"
-        )
+    # определяем цель: ответом, по @username или по ID
+    target_id, display_name, args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
+    )
+
+    if error:
+        await message.reply_text(error)
         return
 
-    target = message.reply_to_message.from_user
-
     # нельзя банить админов
-    if target.id in admin_ids:
+    if target_id in admin_ids:
         await message.delete()
 
         await message.reply_text(
@@ -50,19 +54,17 @@ async def ban_command(
         )
         return
 
-    reason = " ".join(context.args)
+    reason = " ".join(args)
 
     if not reason:
         reason = "Причина не указана"
 
-    username = escape(
-        target.username or target.first_name
-    )
+    username = escape(display_name)
 
     # бан
     await context.bot.ban_chat_member(
         chat_id=chat.id,
-        user_id=target.id
+        user_id=target_id
     )
 
     # удаляем команду
@@ -76,7 +78,7 @@ async def ban_command(
             [
                 InlineKeyboardButton(
                     "✅ Разблокировать",
-                    callback_data=f"unban_{target.id}"
+                    callback_data=f"unban_{target_id}"
                 )
             ]
         ]
@@ -84,12 +86,68 @@ async def ban_command(
 
     await chat.send_message(
         text=(
-            f"@{username} [{target.id}] "
+            f"@{username} [{target_id}] "
             "заблокирован(а).\n\n"
             f"<b>Причина:</b> {escape(reason)}"
         ),
         parse_mode="HTML",
         reply_markup=keyboard
+    )
+
+
+async def unban_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    message = update.message
+    chat = update.effective_chat
+
+    admins = await context.bot.get_chat_administrators(
+        chat.id
+    )
+
+    admin_ids = [
+        admin.user.id
+        for admin in admins
+    ]
+
+    if update.effective_user.id not in admin_ids:
+        try:
+            await message.delete()
+        except:
+            pass
+        return
+
+    target_id, display_name, _args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
+    )
+
+    if error:
+        await message.reply_text(error)
+        return
+
+    try:
+        await context.bot.unban_chat_member(
+            chat_id=chat.id,
+            user_id=target_id
+        )
+    except Exception as e:
+        print(f"UNBAN ERROR: {target_id} | {repr(e)}")
+
+        await message.reply_text(
+            "⚠️ Не удалось разблокировать пользователя"
+        )
+        return
+
+    try:
+        await message.delete()
+    except:
+        pass
+
+    await chat.send_message(
+        text=f"✅ {escape(display_name)} [{target_id}] разблокирован(а)."
     )
 
 

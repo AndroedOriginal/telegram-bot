@@ -7,13 +7,14 @@ from telegram import (
 from telegram.ext import ContextTypes
 
 from html import escape
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from handlers.storage import (
     add_warn,
     remove_warn,
     reset_warn
 )
+from utils.targeting import resolve_target
 
 
 async def warn_command(
@@ -36,16 +37,17 @@ async def warn_command(
             pass
         return
 
-    if not message.reply_to_message:
-        await message.reply_text(
-            "Используй команду ответом на сообщение пользователя:\n/warn причина"
-        )
+    user_id, display_name, args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
+    )
+
+    if error:
+        await message.reply_text(error)
         return
 
-    user = message.reply_to_message.from_user
-    user_id = user.id
-
-    reason = " ".join(context.args)
+    reason = " ".join(args)
 
     if not reason:
         reason = "Причина не указана"
@@ -68,7 +70,8 @@ async def warn_command(
             permissions=ChatPermissions(
                 can_send_messages=False
             ),
-            until_date=timedelta(minutes=10)
+            # ВАЖНО: Telegram нужен момент окончания, а не timedelta.
+            until_date=datetime.now(timezone.utc) + timedelta(minutes=10)
         )
 
         reset_warn(user_id)
@@ -88,9 +91,7 @@ async def warn_command(
         ]
     )
 
-    username = user.username or user.first_name
-
-    username = escape(username)
+    username = escape(display_name)
     reason = escape(reason)
 
     await update.effective_chat.send_message(
@@ -100,6 +101,51 @@ async def warn_command(
         ),
         parse_mode="HTML",
         reply_markup=keyboard
+    )
+
+
+async def unwarn_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    message = update.message
+
+    admins = await context.bot.get_chat_administrators(
+        update.effective_chat.id
+    )
+
+    admin_ids = [admin.user.id for admin in admins]
+
+    if update.effective_user.id not in admin_ids:
+        try:
+            await message.delete()
+        except:
+            pass
+        return
+
+    user_id, display_name, _args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
+    )
+
+    if error:
+        await message.reply_text(error)
+        return
+
+    count = remove_warn(user_id)
+
+    try:
+        await message.delete()
+    except:
+        pass
+
+    await update.effective_chat.send_message(
+        text=(
+            f"✅ Снято предупреждение с @{escape(display_name)} "
+            f"[{user_id}] ({count}/3)."
+        )
     )
 
 
@@ -131,9 +177,6 @@ async def cancel_warn(
         data.replace("cancel_warn_", "")
     )
 
-    remove_warn(user_id)
-
-    await query.message.delete()
     remove_warn(user_id)
 
     await query.message.delete()

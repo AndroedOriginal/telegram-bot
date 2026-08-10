@@ -1,6 +1,8 @@
 from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
+from utils.targeting import resolve_target
+
 
 async def unmute_command(
     update: Update,
@@ -8,7 +10,6 @@ async def unmute_command(
 ):
 
     message = update.message
-
 
     # Проверка администратора
     admins = await context.bot.get_chat_administrators(
@@ -20,46 +21,32 @@ async def unmute_command(
         for admin in admins
     ]
 
-
     if update.effective_user.id not in admin_ids:
-
         try:
             await message.delete()
         except:
             pass
-
         return
 
-
-
-    # Проверка ответа на сообщение
-    if not message.reply_to_message:
-
-        try:
-            await message.delete()
-        except:
-            pass
-
-        print("UNMUTE ERROR: no reply")
-        return
-
-
-
-    user = message.reply_to_message.from_user
-
-
-
-    # Снятие мута
-    await context.bot.restrict_chat_member(
-        chat_id=update.effective_chat.id,
-        user_id=user.id,
-        permissions=ChatPermissions(
-            can_send_messages=True,
-            can_send_other_messages=True
-        )
+    # Определяем цель: ответом, по @username или по ID
+    user_id, display_name, _args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
     )
 
+    if error:
+        await message.reply_text(error)
+        return
 
+    # Снятие мута.
+    # Восстанавливаем ВСЕ права, а не только текст — mute_command
+    # отключает их все, иначе часть ограничений осталась бы навсегда.
+    await context.bot.restrict_chat_member(
+        chat_id=update.effective_chat.id,
+        user_id=user_id,
+        permissions=ChatPermissions.all_permissions()
+    )
 
     # Удаляем команду
     try:
@@ -67,13 +54,6 @@ async def unmute_command(
     except:
         pass
 
-
-
     print(
-        f"UNMUTE: {user.username or user.first_name} ({user.id})"
-    )
-
-
-    print(
-        f"UNMUTE: {user.username or user.first_name} ({user.id})"
+        f"UNMUTE: {display_name} ({user_id})"
     )

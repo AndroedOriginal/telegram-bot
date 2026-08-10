@@ -3,6 +3,8 @@ from telegram.ext import ContextTypes
 from datetime import datetime, timedelta, timezone
 import re
 
+from utils.targeting import resolve_target
+
 
 # Явно выключаем ВСЕ права, а не только отправку текста —
 # иначе замученный всё ещё может слать стикеры/медиа/опросы.
@@ -43,17 +45,18 @@ async def mute_command(
         return
 
     # =========================
-    # КОМАНДА ДОЛЖНА БЫТЬ REPLY
+    # ОПРЕДЕЛЯЕМ ЦЕЛЬ: ОТВЕТ, @USERNAME ИЛИ ID
     # =========================
 
-    if not message.reply_to_message:
-        await message.reply_text(
-            "Используй /mute ответом на сообщение пользователя"
-        )
-        return
+    user_id, _display_name, args, error = await resolve_target(
+        update,
+        context,
+        admin_ids
+    )
 
-    user = message.reply_to_message.from_user
-    user_id = user.id
+    if error:
+        await message.reply_text(error)
+        return
 
     # =========================
     # НЕЛЬЗЯ МУТИТЬ АДМИНОВ
@@ -80,9 +83,9 @@ async def mute_command(
     until_date = None
     duration_text = "навсегда"
 
-    if context.args:
+    if args:
 
-        time_text = context.args[0].lower()
+        time_text = args[0].lower()
 
         match = re.fullmatch(
             r"(\d+)(m|h|d)",
