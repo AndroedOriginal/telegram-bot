@@ -1,5 +1,7 @@
 import os
 
+from telegram import Update
+
 from telegram.ext import (
     Application,
     MessageHandler,
@@ -24,7 +26,7 @@ from handlers.events import (
 from handlers.admin import admins_command
 from handlers.greet import (
     greet_command,
-    greet_new_members,
+    greet_on_membership_change,
     approve_join_request
 )
 from handlers.warn import warn_command, cancel_warn, unwarn_command
@@ -78,18 +80,20 @@ application.add_handler(
 )
 
 
+# Автоматически принимаем все заявки на вступление в чат.
 application.add_handler(
-    MessageHandler(
-        filters.StatusUpdate.NEW_CHAT_MEMBERS,
-        greet_new_members
-    )
+    ChatJoinRequestHandler(approve_join_request)
 )
 
 
-# Автоматически принимаем заявки на вступление в чат и приветствуем
-# каждого одобренного одним и тем же сообщением /greet.
+# Приветствуем при ЛЮБОМ способе попадания в чат: прямое добавление,
+# вступление по ссылке, одобрение заявки ботом или вручную самим
+# админом — статус участника меняется одинаково во всех случаях.
 application.add_handler(
-    ChatJoinRequestHandler(approve_join_request)
+    ChatMemberHandler(
+        greet_on_membership_change,
+        ChatMemberHandler.CHAT_MEMBER
+    )
 )
 
 
@@ -254,6 +258,10 @@ application.post_init = start_scheduler
 
 print("УНИКАЛЬНЫЙ ЗАПУСК БОТА")
 
+# Без явного allowed_updates Telegram НЕ присылает chat_member и
+# chat_join_request, даже если хендлеры на них зарегистрированы —
+# из-за этого /greet не одобрял заявки на вступление.
 application.run_polling(
-    drop_pending_updates=False
+    drop_pending_updates=False,
+    allowed_updates=Update.ALL_TYPES
 )
