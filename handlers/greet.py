@@ -1,6 +1,6 @@
 import re
 
-from telegram import Update, ChatMember
+from telegram import Update
 from telegram.ext import ContextTypes
 
 from utils.permissions import require_admin
@@ -51,28 +51,20 @@ async def approve_join_request(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    # Только принимаем заявку — приветствие отправит
-    # greet_on_membership_change, когда статус пользователя реально
-    # поменяется на "участник" (что происходит и здесь, и если админ
-    # одобрит заявку вручную из самого Telegram).
+    # Только принимаем заявку. Приветствие сюда не относится — оно всегда
+    # реагирует на СЛУЖЕБНОЕ сообщение "X присоединился", которое Telegram
+    # публикует в чат после вступления (см. greet_new_members). Так порядок
+    # гарантированно правильный: сначала виден вход, потом приветствие —
+    # даже если заявку одобрил сам админ вручную из Telegram.
     request = update.chat_join_request
 
     if request is None:
         return
 
-    print(
-        "GREET: получена заявка на вступление "
-        f"{request.from_user.id} в чат {request.chat.id}"
-    )
-
     try:
         await context.bot.approve_chat_join_request(
             request.chat.id,
             request.from_user.id
-        )
-        print(
-            f"GREET: заявка {request.from_user.id} в чат "
-            f"{request.chat.id} принята"
         )
     except Exception as e:
         print(
@@ -81,59 +73,25 @@ async def approve_join_request(
         )
 
 
-def _is_in_chat(status, is_member):
-    if status in (
-        ChatMember.MEMBER,
-        ChatMember.OWNER,
-        ChatMember.ADMINISTRATOR
-    ):
-        return True
-
-    if status == ChatMember.RESTRICTED:
-        return bool(is_member)
-
-    return False
-
-
-async def greet_on_membership_change(
+async def greet_new_members(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    # Ловит ЛЮБОЙ способ попадания в чат одним и тем же событием:
-    # прямое добавление, вступление по ссылке, одобрение заявки ботом
-    # или вручную самим админом из Telegram — во всех случаях у
-    # пользователя одинаково меняется статус членства.
-    result = update.chat_member
+    # Несколько людей могут быть добавлены одним системным сообщением —
+    # шлём одно общее приветствие на всех, а не по одному на человека.
+    # Реагируем именно на это сообщение (а не на chat_member), чтобы
+    # приветствие гарантированно шло ПОСЛЕ видимого "X присоединился".
+    message = update.effective_message
 
-    if result is None:
+    if not message or not message.new_chat_members:
         return
 
-    diff = result.difference()
-    status_change = diff.get("status")
+    users = [u for u in message.new_chat_members if not u.is_bot]
 
-    if status_change is None:
+    if not users:
         return
 
-    old_status, new_status = status_change
-    old_is_member, new_is_member = diff.get("is_member", (None, None))
-
-    print(
-        f"GREET: chat_member {result.new_chat_member.user.id} в чате "
-        f"{result.chat.id}: {old_status} -> {new_status}"
-    )
-
-    was_in = _is_in_chat(old_status, old_is_member)
-    is_in = _is_in_chat(new_status, new_is_member)
-
-    if was_in or not is_in:
-        return
-
-    user = result.new_chat_member.user
-
-    if user.is_bot:
-        return
-
-    chat = result.chat
+    chat = update.effective_chat
 
     try:
         await context.bot.send_message(

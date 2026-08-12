@@ -26,7 +26,7 @@ from handlers.events import (
 from handlers.admin import admins_command
 from handlers.greet import (
     greet_command,
-    greet_on_membership_change,
+    greet_new_members,
     approve_join_request
 )
 from handlers.warn import warn_command, cancel_warn, unwarn_command
@@ -86,13 +86,14 @@ application.add_handler(
 )
 
 
-# Приветствуем при ЛЮБОМ способе попадания в чат: прямое добавление,
-# вступление по ссылке, одобрение заявки ботом или вручную самим
-# админом — статус участника меняется одинаково во всех случаях.
+# Приветствуем сразу после служебного сообщения "X присоединился" —
+# оно появляется и при прямом добавлении, и при одобрении заявки
+# (ботом или вручную самим админом), так что порядок "вход -> приветствие"
+# гарантирован.
 application.add_handler(
-    ChatMemberHandler(
-        greet_on_membership_change,
-        ChatMemberHandler.CHAT_MEMBER
+    MessageHandler(
+        filters.StatusUpdate.NEW_CHAT_MEMBERS,
+        greet_new_members
     )
 )
 
