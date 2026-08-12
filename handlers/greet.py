@@ -4,7 +4,7 @@ from html import escape
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from handlers.greet_storage import get_greet, set_greet
+from handlers.greet_storage import get_greet, set_greet, reset_greet
 from utils.permissions import require_admin
 
 
@@ -40,15 +40,12 @@ async def greet_command(
         pass
 
     if len(parts) < 2:
-        current = get_greet(chat.id)
+        # Без текста — сбрасываем на стандартное приветствие.
+        reset_greet(chat.id)
 
         await chat.send_message(
-            "Используй: /greet текст\n"
-            "Например: /greet Привет, {mention}! Рады видеть тебя в чате 🎉\n\n"
-            "{mention} в тексте заменится на упоминание нового участника "
-            "(необязательно).\n\n"
-            "Текущее приветствие:\n\n"
-            f"<blockquote expandable>{current}</blockquote>",
+            "Приветствие сброшено на стандартное.\n\n"
+            f"<blockquote expandable>{get_greet(chat.id)}</blockquote>",
             parse_mode="HTML"
         )
         return

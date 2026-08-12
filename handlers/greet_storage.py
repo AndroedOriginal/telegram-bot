@@ -49,3 +49,11 @@ def get_greet(chat_id):
 def set_greet(chat_id, text):
     _greet[str(chat_id)] = text
     _save(_greet)
+
+
+def reset_greet(chat_id):
+    key = str(chat_id)
+
+    if key in _greet:
+        del _greet[key]
+        _save(_greet)
