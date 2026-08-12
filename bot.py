@@ -6,6 +6,7 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
     ChatMemberHandler,
+    ChatJoinRequestHandler,
     filters
 )
 
@@ -16,11 +17,16 @@ from handlers.events import (
     addevent_command,
     setevent_command,
     delevent_command,
+    launchevent_command,
     events_command,
     on_bot_added_to_chat
 )
 from handlers.admin import admins_command
-from handlers.welcome import welcome_new_member
+from handlers.greet import (
+    greet_command,
+    greet_new_members,
+    approve_join_request
+)
 from handlers.warn import warn_command, cancel_warn, unwarn_command
 from handlers.unmute import unmute_command
 from handlers.rules import rules_command
@@ -75,7 +81,22 @@ application.add_handler(
 application.add_handler(
     MessageHandler(
         filters.StatusUpdate.NEW_CHAT_MEMBERS,
-        welcome_new_member
+        greet_new_members
+    )
+)
+
+
+# Автоматически принимаем заявки на вступление в чат и приветствуем
+# каждого одобренного одним и тем же сообщением /greet.
+application.add_handler(
+    ChatJoinRequestHandler(approve_join_request)
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "greet",
+        greet_command
     )
 )
 
@@ -192,6 +213,14 @@ application.add_handler(
     CommandHandler(
         "delevent",
         delevent_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "launchevent",
+        launchevent_command
     )
 )
 

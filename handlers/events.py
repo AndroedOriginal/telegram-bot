@@ -13,6 +13,7 @@ from handlers.events_storage import (
     delete_chat_event,
     get_all_events
 )
+from utils.permissions import require_admin
 
 
 TIMEZONE = pytz.timezone("Europe/Moscow")
@@ -107,24 +108,6 @@ def init_events(bot):
     print("Планировщик событий запущен")
 
 
-async def _check_admin(update, context):
-    chat = update.effective_chat
-
-    admins = await context.bot.get_chat_administrators(chat.id)
-    admin_ids = [admin.user.id for admin in admins]
-
-    if update.effective_user.id in admin_ids:
-        return True
-
-    try:
-        await update.effective_message.delete()
-    except Exception as e:
-        print("EVENT: ошибка удаления сообщения", repr(e))
-        pass
-
-    return False
-
-
 async def addevent_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -134,7 +117,7 @@ async def addevent_command(
     message = update.effective_message
     chat = update.effective_chat
 
-    if not await _check_admin(update, context):
+    if not await require_admin(update, context):
         return
 
     # re.split с maxsplit сохраняет пробелы/переносы строк/спойлеры
@@ -195,7 +178,7 @@ async def setevent_command(
     message = update.effective_message
     chat = update.effective_chat
 
-    if not await _check_admin(update, context):
+    if not await require_admin(update, context):
         return
 
     parts = re.split(r"\s+", message.text, maxsplit=3)
@@ -247,7 +230,7 @@ async def delevent_command(
     message = update.effective_message
     chat = update.effective_chat
 
-    if not await _check_admin(update, context):
+    if not await require_admin(update, context):
         return
 
     if not context.args:
@@ -277,6 +260,35 @@ async def delevent_command(
     )
 
 
+async def launchevent_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    message = update.effective_message
+    chat = update.effective_chat
+
+    if not await require_admin(update, context):
+        return
+
+    if not context.args:
+        await message.reply_text("Используй: /launchevent название")
+        return
+
+    name = context.args[0].lower()
+    event = get_chat_events(chat.id).get(name)
+
+    if event is None:
+        await message.reply_text(f"Событие «{escape(name)}» не найдено.")
+        return
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    await _send_event(_resolve_chat_id(chat.id), event["text"])
+
+
 async def events_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -284,20 +296,22 @@ async def events_command(
     message = update.effective_message
     chat = update.effective_chat
 
+    if not await require_admin(update, context):
+        return
+
     events = get_chat_events(chat.id)
 
     if not events:
         await message.reply_text("В этом чате пока нет событий.")
         return
 
-    lines = ["<b>События этого чата:</b>"]
+    blocks = ["<b>События этого чата:</b>"]
 
     for name, event in sorted(events.items()):
-        preview = event["text"].splitlines()[0][:60]
-
-        lines.append(
-            f"• <b>{escape(name)}</b> — {event['time']} — "
-            f"{escape(preview)}…"
+        blocks.append(
+            f"<tg-spoiler>{escape(name)}</tg-spoiler>\n"
+            f"Час: «{event['time']}».\n\n"
+            f"<blockquote expandable>{event['text']}</blockquote>"
         )
 
     try:
@@ -306,7 +320,7 @@ async def events_command(
         pass
 
     await chat.send_message(
-        "\n".join(lines),
+        "\n\n".join(blocks),
         parse_mode="HTML"
     )
 
