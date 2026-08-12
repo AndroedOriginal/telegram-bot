@@ -1,17 +1,24 @@
 import os
-import json
 
 from telegram.ext import (
     Application,
     MessageHandler,
     CommandHandler,
     CallbackQueryHandler,
+    ChatMemberHandler,
     filters
 )
 
 from telegram.request import HTTPXRequest
 
-from handlers.schedule import setup_scheduler
+from handlers.events import (
+    init_events,
+    addevent_command,
+    setevent_command,
+    delevent_command,
+    events_command,
+    on_bot_added_to_chat
+)
 from handlers.admin import admins_command
 from handlers.welcome import welcome_new_member
 from handlers.warn import warn_command, cancel_warn, unwarn_command
@@ -47,33 +54,6 @@ application = (
 
 
 print("TOKEN найден:", TOKEN is not None)
-
-
-with open("config.json", "r", encoding="utf-8") as file:
-    config = json.load(file)
-
-
-CHAT_ID = config["chat_id"]
-
-
-async def send_message(text):
-
-    try:
-
-        await application.bot.send_message(
-            chat_id=CHAT_ID,
-            text=text,
-            parse_mode="HTML"
-        )
-
-        print("Сообщение отправлено:", text)
-
-    except Exception as e:
-
-        print(
-            "Ошибка отправки:",
-            repr(e)
-        )
 
 
 application.add_handler(
@@ -192,17 +172,52 @@ application.add_handler(
 )
 
 
-scheduler = setup_scheduler(
-    config,
-    send_message
+application.add_handler(
+    CommandHandler(
+        "addevent",
+        addevent_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "setevent",
+        setevent_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "delevent",
+        delevent_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "events",
+        events_command
+    )
+)
+
+
+# Ловим момент, когда бота добавляют в новый чат, чтобы сразу
+# завести для него 3 базовых события.
+application.add_handler(
+    ChatMemberHandler(
+        on_bot_added_to_chat,
+        ChatMemberHandler.MY_CHAT_MEMBER
+    )
 )
 
 
 async def start_scheduler(app):
     # AsyncIOScheduler.start() требует уже запущенный event loop,
     # поэтому запускаем его тут, а не на верхнем уровне модуля.
-    scheduler.start()
-    print("Планировщик запущен")
+    init_events(app.bot)
 
 
 application.post_init = start_scheduler

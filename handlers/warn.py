@@ -23,10 +23,9 @@ async def warn_command(
 ):
 
     message = update.message
+    chat_id = update.effective_chat.id
 
-    admins = await context.bot.get_chat_administrators(
-        update.effective_chat.id
-    )
+    admins = await context.bot.get_chat_administrators(chat_id)
 
     admin_ids = [admin.user.id for admin in admins]
 
@@ -52,7 +51,7 @@ async def warn_command(
     if not reason:
         reason = "Причина не указана"
 
-    count = add_warn(user_id)
+    count = add_warn(chat_id, user_id)
 
     # Удаляем команду
     try:
@@ -65,7 +64,7 @@ async def warn_command(
     if count >= 3:
 
         await context.bot.restrict_chat_member(
-            chat_id=update.effective_chat.id,
+            chat_id=chat_id,
             user_id=user_id,
             permissions=ChatPermissions(
                 can_send_messages=False
@@ -74,7 +73,7 @@ async def warn_command(
             until_date=datetime.now(timezone.utc) + timedelta(minutes=10)
         )
 
-        reset_warn(user_id)
+        reset_warn(chat_id, user_id)
 
         return
 
@@ -110,10 +109,9 @@ async def unwarn_command(
 ):
 
     message = update.message
+    chat_id = update.effective_chat.id
 
-    admins = await context.bot.get_chat_administrators(
-        update.effective_chat.id
-    )
+    admins = await context.bot.get_chat_administrators(chat_id)
 
     admin_ids = [admin.user.id for admin in admins]
 
@@ -134,7 +132,7 @@ async def unwarn_command(
         await message.reply_text(error)
         return
 
-    count = remove_warn(user_id)
+    count = remove_warn(chat_id, user_id)
 
     try:
         await message.delete()
@@ -154,11 +152,10 @@ async def cancel_warn(
     context: ContextTypes.DEFAULT_TYPE
 ):
     query = update.callback_query
+    chat_id = update.effective_chat.id
 
     # Проверяем, является ли нажавший администратором
-    admins = await context.bot.get_chat_administrators(
-        update.effective_chat.id
-    )
+    admins = await context.bot.get_chat_administrators(chat_id)
 
     admin_ids = [admin.user.id for admin in admins]
 
@@ -177,6 +174,6 @@ async def cancel_warn(
         data.replace("cancel_warn_", "")
     )
 
-    remove_warn(user_id)
+    remove_warn(chat_id, user_id)
 
     await query.message.delete()

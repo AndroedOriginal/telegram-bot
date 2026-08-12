@@ -16,8 +16,6 @@ def load_warnings():
 
 
 def save_warnings(data):
-    print("SAVE DATA:", data)
-
     with open(FILE, "w", encoding="utf-8") as f:
         json.dump(
             data,
@@ -26,60 +24,50 @@ def save_warnings(data):
             indent=4
         )
 
-    print("FILE SAVED")
-
-    with open(FILE, "r", encoding="utf-8") as f:
-        print("FILE CONTENT:", f.read())
-
 
 warnings = load_warnings()
 
 
-def get_warns(user_id):
-    return warnings.get(str(user_id), 0)
+def _key(chat_id, user_id):
+    # Варны считаются отдельно в каждом чате, а не глобально по всем чатам,
+    # где состоит бот.
+    return f"{chat_id}_{user_id}"
 
 
-def add_warn(user_id):
-    uid = str(user_id)
+def get_warns(chat_id, user_id):
+    return warnings.get(_key(chat_id, user_id), 0)
 
-    warnings[uid] = warnings.get(uid, 0) + 1
+
+def add_warn(chat_id, user_id):
+    key = _key(chat_id, user_id)
+
+    warnings[key] = warnings.get(key, 0) + 1
 
     save_warnings(warnings)
 
-    print("WARN SAVE:", warnings)
-
-    return warnings[uid]
+    return warnings[key]
 
 
-def remove_warn(user_id):
-    uid = str(user_id)
+def remove_warn(chat_id, user_id):
+    key = _key(chat_id, user_id)
 
-    if uid not in warnings:
+    if key not in warnings:
         return 0
 
-    warnings[uid] -= 1
+    warnings[key] -= 1
 
-    if warnings[uid] <= 0:
-        del warnings[uid]
-
-    save_warnings(warnings)
-
-    print("WARN REMOVE:", warnings)
-
-    return warnings.get(uid, 0)
-
-def reset_warn(user_id):
-    uid = str(user_id)
-
-    if uid in warnings:
-        del warnings[uid]
+    if warnings[key] <= 0:
+        del warnings[key]
 
     save_warnings(warnings)
 
-def reset_warn(user_id):
-    uid = str(user_id)
+    return warnings.get(key, 0)
 
-    if uid in warnings:
-        del warnings[uid]
+
+def reset_warn(chat_id, user_id):
+    key = _key(chat_id, user_id)
+
+    if key in warnings:
+        del warnings[key]
 
     save_warnings(warnings)
