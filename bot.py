@@ -27,7 +27,7 @@ from handlers.admin import admins_command
 from handlers.greet import (
     greet_command,
     greet_new_members,
-    approve_join_request
+    track_join_request
 )
 from handlers.warn import warn_command, cancel_warn, unwarn_command
 from handlers.unmute import unmute_command
@@ -80,9 +80,10 @@ application.add_handler(
 )
 
 
-# Автоматически принимаем все заявки на вступление в чат.
+# Заявки не одобряются сами по себе — только запоминаются, пока админ
+# не впустит их через /greet.
 application.add_handler(
-    ChatJoinRequestHandler(approve_join_request)
+    ChatJoinRequestHandler(track_join_request)
 )
 
 

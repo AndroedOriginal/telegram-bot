@@ -1,5 +1,4 @@
 import re
-import time
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -7,32 +6,8 @@ from telegram.ext import ContextTypes
 from utils.permissions import require_admin
 
 
-# Заявки, одобренные самим ботом, не порождают в чате служебное сообщение
-# "X присоединился" (в отличие от прямого добавления или заявки, одобренной
-# вручную самим админом) — Telegram просто тихо делает пользователя
-# участником. Поэтому только для этого пути шлём приветствие сами, сразу
-# после одобрения. Отметка здесь не даёт greet_new_members продублировать
-# приветствие, если служебное сообщение всё же придёт с запозданием.
-_bot_approved = {}
-_DEDUPE_WINDOW = 60
-
-
-def _mark_bot_approved(chat_id, user_id):
-    _bot_approved[(chat_id, user_id)] = time.monotonic()
-
-
-def _was_bot_approved(chat_id, user_id):
-    now = time.monotonic()
-
-    for key, ts in list(_bot_approved.items()):
-        if now - ts > _DEDUPE_WINDOW:
-            del _bot_approved[key]
-
-    return (chat_id, user_id) in _bot_approved
-
-
-# Прежний статичный текст приветствия из welcome.py — используется
-# автоматически при каждом вступлении, и как текст по умолчанию для /greet.
+# Прежний статичный текст приветствия из welcome.py — используется по
+# умолчанию, пока админ не укажет свой текст после /greet.
 DEFAULT_GREET = (
     "Добро пожаловать в Нюберг чат!\n\n"
     "Место, где ты можешь пообщаться на любые темы, поделиться хорошей "
@@ -43,14 +18,25 @@ DEFAULT_GREET = (
     "модерация 👀"
 )
 
+# Заявки на вступление НЕ одобряются автоматически — они копятся тут
+# (только в памяти процесса) и одобряются лишь когда админ вызывает
+# /greet. chat_id -> множество user_id.
+_pending_requests = {}
+
+# Текст, которым бот приветствует новых участников в каждом чате.
+# Обновляется через /greet и НЕ сохраняется на диск — это не команда
+# кастомизации, а способ "впустить и поприветствовать прямо сейчас".
+_greet_text = {}
+
 
 async def greet_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    # /greet не хранит и не настраивает приветствие — он просто сразу же
-    # шлёт его в чат (тем же текстом, что уходит новым участникам
-    # автоматически, либо своим, если он указан после команды).
+    # /greet — это то, что реально впускает ожидающих в чат: одобряет все
+    # скопившиеся заявки на вступление (используя указанный текст или
+    # стандартный для приветствия) и удаляет команду. Если заявок нет —
+    # просто сразу шлёт текст в чат.
     message = update.effective_message
     chat = update.effective_chat
 
@@ -65,49 +51,42 @@ async def greet_command(
     except Exception:
         pass
 
-    await chat.send_message(
-        text,
-        parse_mode="HTML",
-        disable_web_page_preview=True
-    )
+    _greet_text[chat.id] = text
+
+    pending = _pending_requests.pop(chat.id, None)
+
+    if not pending:
+        await chat.send_message(
+            text,
+            parse_mode="HTML",
+            disable_web_page_preview=True
+        )
+        return
+
+    for user_id in pending:
+        try:
+            await context.bot.approve_chat_join_request(chat.id, user_id)
+        except Exception as e:
+            print(
+                "GREET ERROR: не удалось принять заявку "
+                f"{user_id} | {repr(e)}"
+            )
 
 
-async def approve_join_request(
+async def track_join_request(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    # Одобряем заявку и сами же шлём приветствие — Telegram не публикует
-    # "X присоединился" для заявок, одобренных ботом (в отличие от прямого
-    # добавления или заявки, одобренной вручную самим админом, которые
-    # ловит greet_new_members), так что ждать это сообщение здесь бессмысленно.
+    # Заявку НЕ одобряем сразу — бот не должен добавлять людей сам по
+    # себе. Просто запоминаем её, чтобы её впустил /greet.
     request = update.chat_join_request
 
     if request is None:
         return
 
-    chat = request.chat
-    user = request.from_user
-
-    try:
-        await context.bot.approve_chat_join_request(chat.id, user.id)
-    except Exception as e:
-        print(
-            "GREET ERROR: не удалось принять заявку "
-            f"{user.id} | {repr(e)}"
-        )
-        return
-
-    _mark_bot_approved(chat.id, user.id)
-
-    try:
-        await context.bot.send_message(
-            chat_id=chat.id,
-            text=DEFAULT_GREET,
-            parse_mode="HTML",
-            disable_web_page_preview=True
-        )
-    except Exception as e:
-        print(f"GREET ERROR: {chat.id} | {repr(e)}")
+    _pending_requests.setdefault(request.chat.id, set()).add(
+        request.from_user.id
+    )
 
 
 async def greet_new_members(
@@ -123,20 +102,18 @@ async def greet_new_members(
     if not message or not message.new_chat_members:
         return
 
-    chat = update.effective_chat
-
-    users = [
-        u for u in message.new_chat_members
-        if not u.is_bot and not _was_bot_approved(chat.id, u.id)
-    ]
+    users = [u for u in message.new_chat_members if not u.is_bot]
 
     if not users:
         return
 
+    chat = update.effective_chat
+    text = _greet_text.get(chat.id, DEFAULT_GREET)
+
     try:
         await context.bot.send_message(
             chat_id=chat.id,
-            text=DEFAULT_GREET,
+            text=text,
             parse_mode="HTML",
             disable_web_page_preview=True
         )
