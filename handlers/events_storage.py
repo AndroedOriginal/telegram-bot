@@ -1,7 +1,9 @@
 import json
 import os
 
-FILE = os.path.join(os.path.dirname(__file__), "events.json")
+from utils.paths import data_path
+
+FILE = data_path("events.json")
 
 
 # Базовые события — включены по умолчанию для любого чата, пока

@@ -1,7 +1,9 @@
 import json
 import os
 
-FILE = os.path.join(os.path.dirname(__file__), "warnings.json")
+from utils.paths import data_path
+
+FILE = data_path("warnings.json")
 
 
 def load_warnings():

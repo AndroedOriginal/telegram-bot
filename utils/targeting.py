@@ -1,7 +1,9 @@
 import json
 import os
 
-FILE = os.path.join(os.path.dirname(__file__), "user_directory.json")
+from utils.paths import data_path
+
+FILE = data_path("user_directory.json")
 
 
 def _load():
