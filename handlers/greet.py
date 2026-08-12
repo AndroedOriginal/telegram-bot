@@ -60,10 +60,19 @@ async def approve_join_request(
     if request is None:
         return
 
+    print(
+        "GREET: получена заявка на вступление "
+        f"{request.from_user.id} в чат {request.chat.id}"
+    )
+
     try:
         await context.bot.approve_chat_join_request(
             request.chat.id,
             request.from_user.id
+        )
+        print(
+            f"GREET: заявка {request.from_user.id} в чат "
+            f"{request.chat.id} принята"
         )
     except Exception as e:
         print(
@@ -107,6 +116,11 @@ async def greet_on_membership_change(
 
     old_status, new_status = status_change
     old_is_member, new_is_member = diff.get("is_member", (None, None))
+
+    print(
+        f"GREET: chat_member {result.new_chat_member.user.id} в чате "
+        f"{result.chat.id}: {old_status} -> {new_status}"
+    )
 
     was_in = _is_in_chat(old_status, old_is_member)
     is_in = _is_in_chat(new_status, new_is_member)
