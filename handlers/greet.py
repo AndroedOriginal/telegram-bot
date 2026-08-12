@@ -34,10 +34,15 @@ async def greet_command(
 
     parts = re.split(r"\s+", message.text, maxsplit=1)
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if len(parts) < 2:
         current = get_greet(chat.id)
 
-        await message.reply_text(
+        await chat.send_message(
             "Используй: /greet текст\n"
             "Например: /greet Привет, {mention}! Рады видеть тебя в чате 🎉\n\n"
             "{mention} в тексте заменится на упоминание нового участника "
@@ -50,11 +55,6 @@ async def greet_command(
 
     text = parts[1]
     set_greet(chat.id, text)
-
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     await chat.send_message(
         "Приветствие обновлено.\n\n"

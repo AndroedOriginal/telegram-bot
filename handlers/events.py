@@ -124,8 +124,13 @@ async def addevent_command(
     # в тексте события без изменений.
     parts = re.split(r"\s+", message.text, maxsplit=3)
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if len(parts) < 4:
-        await message.reply_text(
+        await chat.send_message(
             "Используй: /addevent название время текст\n"
             "Например: /addevent movie 20:00 Сегодня смотрим фильм!"
         )
@@ -134,14 +139,14 @@ async def addevent_command(
     _, name, time_str, text = parts
 
     if not NAME_RE.match(name):
-        await message.reply_text(
+        await chat.send_message(
             "Название события может содержать только буквы, цифры, "
             "_ и -, без пробелов."
         )
         return
 
     if not TIME_RE.match(time_str):
-        await message.reply_text(
+        await chat.send_message(
             "Неверный формат времени. Используй формат ЧЧ:ММ, "
             "например 20:00"
         )
@@ -150,18 +155,13 @@ async def addevent_command(
     name = name.lower()
 
     if name in get_chat_events(chat.id):
-        await message.reply_text(
+        await chat.send_message(
             f"Событие «{escape(name)}» уже существует. Используй "
             "/setevent, чтобы изменить его."
         )
         return
 
     schedule_event(chat.id, name, time_str, text)
-
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     await chat.send_message(
         f"Добавлен ивент «{escape(name)}».\n"
@@ -183,8 +183,13 @@ async def setevent_command(
 
     parts = re.split(r"\s+", message.text, maxsplit=3)
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if len(parts) < 4:
-        await message.reply_text(
+        await chat.send_message(
             "Используй: /setevent название время текст\n"
             "Например: /setevent radio 23:00 <новый текст радио>"
         )
@@ -193,7 +198,7 @@ async def setevent_command(
     _, name, time_str, text = parts
 
     if not TIME_RE.match(time_str):
-        await message.reply_text(
+        await chat.send_message(
             "Неверный формат времени. Используй формат ЧЧ:ММ, "
             "например 20:00"
         )
@@ -202,18 +207,13 @@ async def setevent_command(
     name = name.lower()
 
     if name not in get_chat_events(chat.id):
-        await message.reply_text(
+        await chat.send_message(
             f"Событие «{escape(name)}» не найдено. Используй "
             "/addevent, чтобы создать новое."
         )
         return
 
     schedule_event(chat.id, name, time_str, text)
-
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     await chat.send_message(
         f"Изменён ивент «{escape(name)}».\n"
@@ -233,24 +233,26 @@ async def delevent_command(
     if not await require_admin(update, context):
         return
 
-    if not context.args:
-        await message.reply_text("Используй: /delevent название")
+    args = context.args
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    if not args:
+        await chat.send_message("Используй: /delevent название")
         return
 
-    name = context.args[0].lower()
+    name = args[0].lower()
 
     # Забираем время/текст ДО удаления — remove_event стирает их из
     # хранилища, а подтверждение должно показать, что именно удалили.
     event = get_chat_events(chat.id).get(name)
 
     if event is None or not remove_event(chat.id, name):
-        await message.reply_text(f"Событие «{escape(name)}» не найдено.")
+        await chat.send_message(f"Событие «{escape(name)}» не найдено.")
         return
-
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     await chat.send_message(
         f"Удалён ивент «{escape(name)}».\n"
@@ -270,21 +272,23 @@ async def launchevent_command(
     if not await require_admin(update, context):
         return
 
-    if not context.args:
-        await message.reply_text("Используй: /launchevent название")
-        return
-
-    name = context.args[0].lower()
-    event = get_chat_events(chat.id).get(name)
-
-    if event is None:
-        await message.reply_text(f"Событие «{escape(name)}» не найдено.")
-        return
+    args = context.args
 
     try:
         await message.delete()
     except Exception:
         pass
+
+    if not args:
+        await chat.send_message("Используй: /launchevent название")
+        return
+
+    name = args[0].lower()
+    event = get_chat_events(chat.id).get(name)
+
+    if event is None:
+        await chat.send_message(f"Событие «{escape(name)}» не найдено.")
+        return
 
     await _send_event(_resolve_chat_id(chat.id), event["text"])
 
@@ -301,8 +305,13 @@ async def events_command(
 
     events = get_chat_events(chat.id)
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     if not events:
-        await message.reply_text("В этом чате пока нет событий.")
+        await chat.send_message("В этом чате пока нет событий.")
         return
 
     blocks = ["<b>События этого чата:</b>"]
@@ -313,11 +322,6 @@ async def events_command(
             f"Час: «{event['time']}».\n\n"
             f"<blockquote expandable>{event['text']}</blockquote>"
         )
-
-    try:
-        await message.delete()
-    except Exception:
-        pass
 
     await chat.send_message(
         "\n\n".join(blocks),

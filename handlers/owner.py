@@ -29,15 +29,15 @@ async def owner_command(
 
     target = message.reply_to_message.from_user
 
-    # Нельзя назначить самого бота
-    if target.id == context.bot.id:
-        return
-
     try:
         # удаляем команду
         await message.delete()
     except:
         pass
+
+    # Нельзя назначить самого бота
+    if target.id == context.bot.id:
+        return
 
     try:
         await context.bot.promote_chat_member(

@@ -44,6 +44,11 @@ async def mute_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     # =========================
     # ОПРЕДЕЛЯЕМ ЦЕЛЬ: ОТВЕТ, @USERNAME ИЛИ ID
     # =========================
@@ -55,7 +60,7 @@ async def mute_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await chat.send_message(error)
         return
 
     # =========================
@@ -66,12 +71,7 @@ async def mute_command(
     # "срабатывала", а мут не применялся.
 
     if user_id in admin_ids:
-        try:
-            await message.delete()
-        except Exception:
-            pass
-
-        await message.reply_text(
+        await chat.send_message(
             "❌ Нельзя замутить администратора"
         )
         return
@@ -93,7 +93,7 @@ async def mute_command(
         )
 
         if not match or int(match.group(1)) <= 0:
-            await message.reply_text(
+            await chat.send_message(
                 "Неверный формат времени. Примеры: 1m, 2h, 1d"
             )
             return
@@ -142,16 +142,7 @@ async def mute_command(
         )
 
         # Раньше ошибка ничем не выдавалась — мут молча не срабатывал.
-        await message.reply_text(
+        await chat.send_message(
             "⚠️ Не удалось замутить пользователя"
         )
         return
-
-    # =========================
-    # УДАЛЯЕМ КОМАНДУ
-    # =========================
-
-    try:
-        await message.delete()
-    except Exception:
-        pass

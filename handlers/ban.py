@@ -34,6 +34,11 @@ async def ban_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     # определяем цель: ответом, по @username или по ID
     target_id, display_name, args, error = await resolve_target(
         update,
@@ -42,14 +47,12 @@ async def ban_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await chat.send_message(error)
         return
 
     # нельзя банить админов
     if target_id in admin_ids:
-        await message.delete()
-
-        await message.reply_text(
+        await chat.send_message(
             "❌ Нельзя заблокировать администратора"
         )
         return
@@ -66,12 +69,6 @@ async def ban_command(
         chat_id=chat.id,
         user_id=target_id
     )
-
-    # удаляем команду
-    try:
-        await message.delete()
-    except:
-        pass
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -118,6 +115,11 @@ async def unban_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     target_id, display_name, _args, error = await resolve_target(
         update,
         context,
@@ -125,7 +127,7 @@ async def unban_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await chat.send_message(error)
         return
 
     try:
@@ -136,15 +138,10 @@ async def unban_command(
     except Exception as e:
         print(f"UNBAN ERROR: {target_id} | {repr(e)}")
 
-        await message.reply_text(
+        await chat.send_message(
             "⚠️ Не удалось разблокировать пользователя"
         )
         return
-
-    try:
-        await message.delete()
-    except:
-        pass
 
     await chat.send_message(
         text=f"✅ {escape(display_name)} [{target_id}] разблокирован(а)."

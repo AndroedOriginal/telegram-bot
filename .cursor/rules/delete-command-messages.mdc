@@ -1,0 +1,30 @@
+---
+description: Bot commands must delete the invoking message unless told otherwise
+globs: handlers/**/*.py,bot.py
+alwaysApply: false
+---
+
+# Delete command messages
+
+Every command handler must delete the user's `/command ...` message from the
+chat once it's done processing — on the success path **and** on every
+error/validation path (usage hints, "not found", "already exists", etc.) —
+unless the user explicitly asks for different behavior for a specific case.
+
+Delete defensively, since the message may already be gone (e.g. sent as an
+edited message, or deleted by another admin/bot):
+
+```python
+try:
+    await message.delete()
+except Exception:
+    pass
+```
+
+Because the invoking message is gone, don't rely on `message.reply_text(...)`
+for the response (replying to a deleted message can misbehave) — send a new
+message instead, e.g. `chat.send_message(...)`.
+
+This applies to every command handler in `handlers/`, including ones added in
+the future (`/greet`, `/addevent`, `/setevent`, `/delevent`, `/launchevent`,
+moderation commands, etc.).

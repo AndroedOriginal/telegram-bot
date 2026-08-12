@@ -36,6 +36,11 @@ async def warn_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     user_id, display_name, args, error = await resolve_target(
         update,
         context,
@@ -43,7 +48,7 @@ async def warn_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await update.effective_chat.send_message(error)
         return
 
     reason = " ".join(args)
@@ -52,12 +57,6 @@ async def warn_command(
         reason = "Причина не указана"
 
     count = add_warn(chat_id, user_id)
-
-    # Удаляем команду
-    try:
-        await message.delete()
-    except:
-        pass
 
     # ======= Третий варн =======
 
@@ -122,6 +121,11 @@ async def unwarn_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     user_id, display_name, _args, error = await resolve_target(
         update,
         context,
@@ -129,15 +133,10 @@ async def unwarn_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await update.effective_chat.send_message(error)
         return
 
     count = remove_warn(chat_id, user_id)
-
-    try:
-        await message.delete()
-    except:
-        pass
 
     await update.effective_chat.send_message(
         text=(

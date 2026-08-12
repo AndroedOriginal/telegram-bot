@@ -28,6 +28,11 @@ async def unmute_command(
             pass
         return
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     # Определяем цель: ответом, по @username или по ID
     user_id, display_name, _args, error = await resolve_target(
         update,
@@ -36,7 +41,7 @@ async def unmute_command(
     )
 
     if error:
-        await message.reply_text(error)
+        await update.effective_chat.send_message(error)
         return
 
     # Снятие мута.
@@ -47,12 +52,6 @@ async def unmute_command(
         user_id=user_id,
         permissions=ChatPermissions.all_permissions()
     )
-
-    # Удаляем команду
-    try:
-        await message.delete()
-    except:
-        pass
 
     print(
         f"UNMUTE: {display_name} ({user_id})"
