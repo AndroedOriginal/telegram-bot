@@ -1,7 +1,31 @@
+import time
+
+# Кэш списков админов чата — antispam проверяет права на КАЖДОЕ сообщение,
+# и без кэша это означало бы отдельный запрос к Telegram на каждое
+# сообщение в чате. TTL небольшой, чтобы смена админов подхватывалась
+# быстро, но не мгновенно.
+_ADMIN_CACHE_TTL = 60
+_admin_cache = {}
+
+
+async def _get_admin_ids(chat_id, context):
+    cached = _admin_cache.get(chat_id)
+    now = time.monotonic()
+
+    if cached and now - cached[0] < _ADMIN_CACHE_TTL:
+        return cached[1]
+
+    admins = await context.bot.get_chat_administrators(chat_id)
+    admin_ids = [admin.user.id for admin in admins]
+
+    _admin_cache[chat_id] = (now, admin_ids)
+
+    return admin_ids
+
+
 async def is_chat_admin(update, context):
     chat = update.effective_chat
-    admins = await context.bot.get_chat_administrators(chat.id)
-    admin_ids = [admin.user.id for admin in admins]
+    admin_ids = await _get_admin_ids(chat.id, context)
 
     return update.effective_user.id in admin_ids
 

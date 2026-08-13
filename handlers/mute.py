@@ -88,27 +88,35 @@ async def mute_command(
         time_text = args[0].lower()
 
         match = re.fullmatch(
-            r"(\d+)(m|h|d)",
+            r"(\d+)(s|m|h|d|y)",
             time_text
         )
 
         if not match or int(match.group(1)) <= 0:
             await chat.send_message(
-                "Неверный формат времени. Примеры: 1m, 2h, 1d"
+                "Неверный формат времени. Примеры: 30s, 1m, 2h, 1d, 1y"
             )
             return
 
         value = int(match.group(1))
         unit = match.group(2)
 
-        if unit == "m":
+        if unit == "s":
+            duration = timedelta(seconds=value)
+
+        elif unit == "m":
             duration = timedelta(minutes=value)
 
         elif unit == "h":
             duration = timedelta(hours=value)
 
-        else:
+        elif unit == "d":
             duration = timedelta(days=value)
+
+        else:
+            # "y" — год считаем как 365 дней, Telegram всё равно
+            # хочет конкретный until_date, а не абстрактную дату.
+            duration = timedelta(days=365 * value)
 
         # ВАЖНО:
         # Telegram нужен момент окончания,

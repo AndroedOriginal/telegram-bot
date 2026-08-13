@@ -297,11 +297,11 @@ async def events_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
+    # В отличие от остальных команд этого модуля, /events доступна
+    # любому пользователю чата, а не только админам — это просмотр
+    # расписания, а не его изменение.
     message = update.effective_message
     chat = update.effective_chat
-
-    if not await require_admin(update, context):
-        return
 
     events = get_chat_events(chat.id)
 

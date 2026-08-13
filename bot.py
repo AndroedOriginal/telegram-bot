@@ -24,6 +24,7 @@ from handlers.events import (
     on_bot_added_to_chat
 )
 from handlers.admin import admins_command
+from handlers.antispam import check_spam
 from handlers.greet import (
     greet_command,
     greet_new_members,
@@ -116,6 +117,17 @@ application.add_handler(
         remember_message_sender
     ),
     group=1
+)
+
+
+# Отдельная группа, чтобы antispam проверял каждое сообщение независимо
+# от remember_message_sender и обычных командных хендлеров.
+application.add_handler(
+    MessageHandler(
+        filters.ALL,
+        check_spam
+    ),
+    group=2
 )
 
 
