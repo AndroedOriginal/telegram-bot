@@ -24,7 +24,11 @@ from handlers.events import (
     on_bot_added_to_chat
 )
 from handlers.admin import admins_command
-from handlers.antispam import check_spam
+from handlers.antispam import (
+    check_spam,
+    antispam_command,
+    antirepeat_command
+)
 from handlers.greet import (
     greet_command,
     greet_new_members,
@@ -128,6 +132,22 @@ application.add_handler(
         check_spam
     ),
     group=2
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "antispam",
+        antispam_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "antirepeat",
+        antirepeat_command
+    )
 )
 
 

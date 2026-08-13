@@ -217,7 +217,7 @@ async def setevent_command(
 
     await chat.send_message(
         f"Изменён ивент «{escape(name)}».\n"
-        f"Час: «{time_str}».\n\n"
+        f"Час: «{time_str}» по Московскому времени.\n\n"
         f"<blockquote expandable>{text}</blockquote>",
         parse_mode="HTML"
     )
