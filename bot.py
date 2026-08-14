@@ -39,8 +39,8 @@ from handlers.unmute import unmute_command
 from handlers.rules import rules_command
 from handlers.msg import msg_command
 from handlers.ban import ban_command, unban_callback, unban_command
-from handlers.mute import mute_command
-from handlers.immunity import immunity_command
+from handlers.mute import mute_command, cancel_mute_callback
+from handlers.immunity import immunity_command, cancel_immunity_callback
 from handlers.owner import owner_command
 from utils.targeting import remember_message_sender
 from utils.permissions import on_chat_member_changed
@@ -229,6 +229,22 @@ application.add_handler(
     CommandHandler(
         "immunity",
         immunity_command
+    )
+)
+
+
+application.add_handler(
+    CallbackQueryHandler(
+        cancel_immunity_callback,
+        pattern=r"^cancel_immunity_"
+    )
+)
+
+
+application.add_handler(
+    CallbackQueryHandler(
+        cancel_mute_callback,
+        pattern=r"^cancel_mute_"
     )
 )
 

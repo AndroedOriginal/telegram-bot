@@ -61,7 +61,7 @@ async def ban_command(
     # иммунитет защищает от бана (но не от antispam/antirepeat)
     if is_immune(chat.id, target_id):
         await chat.send_message(
-            f"🛡 У @{escape(display_name)} [{target_id}] есть иммунитет "
+            f"У @{escape(display_name)} [{target_id}] есть иммунитет "
             "— забанить нельзя."
         )
         return

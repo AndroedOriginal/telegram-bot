@@ -55,7 +55,7 @@ async def warn_command(
     # иммунитет защищает от варна (но не от antispam/antirepeat)
     if is_immune(chat_id, user_id):
         await update.effective_chat.send_message(
-            f"🛡 У @{escape(display_name)} [{user_id}] есть иммунитет "
+            f"У @{escape(display_name)} [{user_id}] есть иммунитет "
             "— выдать предупреждение нельзя."
         )
         return

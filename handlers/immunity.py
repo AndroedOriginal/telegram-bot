@@ -1,4 +1,8 @@
-from telegram import Update
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 from telegram.ext import ContextTypes
 
 from html import escape
@@ -152,7 +156,7 @@ async def immunity_command(
         )
 
         await chat.send_message(
-            f"🛡 Иммунитет снят с @{username} [{user_id}]."
+            f"Иммунитет снят с @{username} [{user_id}]."
         )
 
         if tag_warning:
@@ -192,9 +196,51 @@ async def immunity_command(
         context, chat.id, user_id, granting=True
     )
 
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "❌ Отмена",
+                    callback_data=f"cancel_immunity_{user_id}"
+                )
+            ]
+        ]
+    )
+
     await chat.send_message(
-        f"🛡 @{username} [{user_id}] получил(а) иммунитет {phrase}."
+        f"@{username} [{user_id}] получил(а) иммунитет {phrase}.",
+        reply_markup=keyboard
     )
 
     if tag_warning:
         await chat.send_message(tag_warning)
+
+
+async def cancel_immunity_callback(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    query = update.callback_query
+    chat_id = update.effective_chat.id
+
+    # Кнопка отмены видна всем, но действует только для админов —
+    # как и остальные admin-only кнопки бота (cancel_warn, unban).
+    admins = await context.bot.get_chat_administrators(chat_id)
+    admin_ids = [admin.user.id for admin in admins]
+
+    if update.effective_user.id not in admin_ids:
+        await query.answer(
+            "⚠️У вас нету разрешений для выполнения этого действия",
+            show_alert=True
+        )
+        return
+
+    await query.answer()
+
+    user_id = int(query.data.replace("cancel_immunity_", ""))
+
+    remove_immunity(chat_id, user_id)
+
+    await _update_tag(context, chat_id, user_id, granting=False)
+
+    await query.message.delete()
