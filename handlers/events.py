@@ -21,11 +21,6 @@ TIMEZONE = pytz.timezone("Europe/Moscow")
 NAME_RE = re.compile(r"^[\w-]+$")
 TIME_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
-# Этому чату события были настроены вручную через config.json ещё до
-# появления системы именованных событий — при первом запуске сохраняем
-# ему прежнее расписание, чтобы оно не прервалось.
-LEGACY_CHAT_ID = "@old_nbrg_chat"
-
 scheduler = AsyncIOScheduler(timezone=TIMEZONE)
 
 _bot = None
@@ -96,9 +91,6 @@ def remove_event(chat_id, name):
 def init_events(bot):
     global _bot
     _bot = bot
-
-    # Одноразовая миграция старого чата (см. LEGACY_CHAT_ID выше).
-    get_chat_events(LEGACY_CHAT_ID)
 
     for chat_id, events in get_all_events().items():
         for name, event in events.items():
