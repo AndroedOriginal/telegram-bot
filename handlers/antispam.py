@@ -116,27 +116,16 @@ async def check_spam(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    message = update.effective_message
+    # Считаем активностью только НОВЫЕ сообщения (update.message).
+    # update.edited_message игнорируем полностью: обычное редактирование —
+    # не новая активность, а Telegram вдобавок массово переприсылает СТАРЫЕ
+    # сообщения пользователя как edited_message при смене его tag
+    # (sender_tag, /setChatMemberTag) — без этой проверки вся история
+    # сообщений разом засчитывалась как всплеск флуда и мьютила того,
+    # кто вообще ничего не писал.
+    message = update.message
     user = update.effective_user
     chat = update.effective_chat
-
-    # Временный подробный лог для разбора бага с mute сразу после смены
-    # тега — показывает КАЖДЫЙ апдейт, дошедший до antispam, включая
-    # edited_message (Telegram мог переслать старые сообщения повторно
-    # из-за sender_tag) и служебные поля.
-    if message is not None and user is not None:
-        preview = (message.text or message.caption or "")[:40]
-        print(
-            "CHECK_SPAM DEBUG: "
-            f"update_id={update.update_id} msg_id={message.message_id} "
-            f"is_edited_update={update.edited_message is not None} "
-            f"user={user.username or user.first_name}[{user.id}] "
-            f"chat={chat.id if chat else None} "
-            f"date={message.date} edit_date={message.edit_date} "
-            f"sender_tag={getattr(message, 'sender_tag', None)!r} "
-            f"sticker={bool(message.sticker)} anim={bool(message.animation)} "
-            f"text={preview!r}"
-        )
 
     if message is None or user is None or user.is_bot:
         return
