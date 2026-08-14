@@ -42,6 +42,7 @@ from handlers.ban import ban_command, unban_callback, unban_command
 from handlers.mute import mute_command
 from handlers.owner import owner_command
 from utils.targeting import remember_message_sender
+from utils.permissions import on_chat_member_changed
 
 
 TOKEN = os.getenv("TOKEN")
@@ -277,6 +278,16 @@ application.add_handler(
     ChatMemberHandler(
         on_bot_added_to_chat,
         ChatMemberHandler.MY_CHAT_MEMBER
+    )
+)
+
+
+# Сбрасываем кэш админов сразу при изменении прав/тега любого участника —
+# иначе antispam может до минуты считать свежего админа обычным юзером.
+application.add_handler(
+    ChatMemberHandler(
+        on_chat_member_changed,
+        ChatMemberHandler.CHAT_MEMBER
     )
 )
 

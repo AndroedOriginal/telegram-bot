@@ -44,3 +44,19 @@ async def require_admin(update, context):
         pass
 
     return False
+
+
+async def on_chat_member_changed(update, context):
+    """
+    Сбрасывает кэш админов чата сразу при любом изменении прав участника —
+    повышение, понижение, снятие ограничений, смена custom_title (тега
+    рядом с ником) и т.п. Без этого только что назначенный админ или тот,
+    кому только что дали тег, до _ADMIN_CACHE_TTL секунд считался бы
+    обычным участником и мог попасть под antispam.
+    """
+    chat_member_update = update.chat_member
+
+    if chat_member_update is None:
+        return
+
+    _admin_cache.pop(chat_member_update.chat.id, None)
