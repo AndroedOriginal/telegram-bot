@@ -59,4 +59,16 @@ async def on_chat_member_changed(update, context):
     if chat_member_update is None:
         return
 
+    old = chat_member_update.old_chat_member
+    new = chat_member_update.new_chat_member
+
+    print(
+        "CHAT_MEMBER: чат "
+        f"{chat_member_update.chat.id} | "
+        f"{new.user.username or new.user.first_name} [{new.user.id}] | "
+        f"статус {old.status} -> {new.status} | "
+        f"тег {getattr(old, 'custom_title', None)!r} -> "
+        f"{getattr(new, 'custom_title', None)!r}"
+    )
+
     _admin_cache.pop(chat_member_update.chat.id, None)
