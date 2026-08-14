@@ -8,7 +8,7 @@ FILE = data_path("antispam.json")
 # "burst" — правило флуда (N+ сообщений за окно времени).
 # "repeat" — правило повторов (N+ одинаковых сообщений либо стикеров/гифок
 # за окно времени).
-DEFAULT_BURST = {"enabled": True, "window": 2, "limit": 5}
+DEFAULT_BURST = {"enabled": True, "window": 3, "limit": 10}
 DEFAULT_REPEAT = {"enabled": True, "window": 60, "limit": 10}
 
 
