@@ -40,6 +40,7 @@ from handlers.rules import rules_command
 from handlers.msg import msg_command
 from handlers.ban import ban_command, unban_callback, unban_command
 from handlers.mute import mute_command
+from handlers.immunity import immunity_command
 from handlers.owner import owner_command
 from utils.targeting import remember_message_sender
 from utils.permissions import on_chat_member_changed
@@ -220,6 +221,14 @@ application.add_handler(
     CommandHandler(
         "mute",
         mute_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "immunity",
+        immunity_command
     )
 )
 

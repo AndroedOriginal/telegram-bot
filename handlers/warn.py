@@ -15,6 +15,7 @@ from handlers.storage import (
     reset_warn
 )
 from utils.targeting import resolve_target
+from handlers.immunity_storage import is_immune
 
 
 async def warn_command(
@@ -49,6 +50,14 @@ async def warn_command(
 
     if error:
         await update.effective_chat.send_message(error)
+        return
+
+    # иммунитет защищает от варна (но не от antispam/antirepeat)
+    if is_immune(chat_id, user_id):
+        await update.effective_chat.send_message(
+            f"🛡 У @{escape(display_name)} [{user_id}] есть иммунитет "
+            "— выдать предупреждение нельзя."
+        )
         return
 
     reason = " ".join(args)

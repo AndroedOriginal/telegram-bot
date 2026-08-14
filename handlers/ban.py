@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 from html import escape
 
 from utils.targeting import resolve_target
+from handlers.immunity_storage import is_immune
 
 
 async def ban_command(
@@ -54,6 +55,14 @@ async def ban_command(
     if target_id in admin_ids:
         await chat.send_message(
             "❌ Нельзя заблокировать администратора"
+        )
+        return
+
+    # иммунитет защищает от бана (но не от antispam/antirepeat)
+    if is_immune(chat.id, target_id):
+        await chat.send_message(
+            f"🛡 У @{escape(display_name)} [{target_id}] есть иммунитет "
+            "— забанить нельзя."
         )
         return
 

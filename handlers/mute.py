@@ -1,9 +1,11 @@
 from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
+from html import escape
 from datetime import datetime, timedelta, timezone
 
 from utils.duration import parse_duration_seconds
 from utils.targeting import resolve_target
+from handlers.immunity_storage import is_immune
 
 
 # Явно выключаем ВСЕ права, а не только отправку текста —
@@ -53,7 +55,7 @@ async def mute_command(
     # ОПРЕДЕЛЯЕМ ЦЕЛЬ: ОТВЕТ, @USERNAME ИЛИ ID
     # =========================
 
-    user_id, _display_name, args, error = await resolve_target(
+    user_id, display_name, args, error = await resolve_target(
         update,
         context,
         admin_ids
@@ -73,6 +75,14 @@ async def mute_command(
     if user_id in admin_ids:
         await chat.send_message(
             "❌ Нельзя замутить администратора"
+        )
+        return
+
+    # иммунитет защищает от мута (но не от antispam/antirepeat)
+    if is_immune(chat.id, user_id):
+        await chat.send_message(
+            f"🛡 У @{escape(display_name)} [{user_id}] есть иммунитет "
+            "— замутить нельзя."
         )
         return
 
