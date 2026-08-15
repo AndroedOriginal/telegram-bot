@@ -33,6 +33,10 @@ def _save(data):
 # к конкретному чату: управляется только владельцем бота (см. handlers/plots.py).
 _plots = _load()
 
+# Заглушка-инструкция, а не настоящая шутка — никогда не запускается,
+# ни случайно, ни явно по имени.
+_EXCLUDED_PLOTS = {"example"}
+
 
 def add_plot(name, lines):
     _plots[name.lower()] = list(lines)
@@ -56,7 +60,12 @@ def delete_plot(name):
 
 
 def get_plot(name):
-    return _plots.get(name.lower())
+    key = name.lower()
+
+    if key in _EXCLUDED_PLOTS:
+        return None
+
+    return _plots.get(key)
 
 
 def get_all_plots():
@@ -64,7 +73,12 @@ def get_all_plots():
 
 
 def get_random_plot():
-    if not _plots:
+    candidates = [
+        lines for name, lines in _plots.items()
+        if name not in _EXCLUDED_PLOTS
+    ]
+
+    if not candidates:
         return None
 
-    return random.choice(list(_plots.values()))
+    return random.choice(candidates)

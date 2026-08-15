@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 from html import escape
 
 from handlers.owner import OWNER_ID
-from handlers.plots_storage import add_plot, set_plot, delete_plot, get_plot
+from handlers.plots_storage import add_plot, set_plot, delete_plot, get_all_plots
 
 
 async def _delete_and_check_owner(update):
@@ -74,7 +74,7 @@ async def addplot_command(
         )
         return
 
-    if get_plot(name):
+    if name.lower() in get_all_plots():
         await chat.send_message(
             f"Сценарий «{escape(name)}» уже существует. Используй "
             "/setplot, чтобы изменить его."
@@ -107,7 +107,7 @@ async def setplot_command(
         )
         return
 
-    if not get_plot(name):
+    if name.lower() not in get_all_plots():
         await chat.send_message(
             f"Сценарий «{escape(name)}» не найден. Используй /addplot, "
             "чтобы создать новый."
