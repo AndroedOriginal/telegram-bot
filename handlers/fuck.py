@@ -150,19 +150,11 @@ async def fuck_command(
     safety_seconds = int(len(plot) * (_MAX_DELAY + 1) + 15)
 
     mention = f"@{display_name}" if display_name else str(target_id)
-    sender_mention = f"@{user.username}" if user.username else user.first_name
-
-    # Публичный "анонс" перед постановкой — вместо буквального названия
-    # команды используем тему проклятия, в которую и так одеты все сценарии.
-    try:
-        await chat.send_message(
-            f"{sender_mention} насылает проклятие на {mention}."
-        )
-    except Exception as e:
-        print(f"FUCK ANNOUNCE ERROR: {repr(e)}")
 
     # Мут без какого-либо отдельного сообщения об этом — тихо, чтобы не
-    # мешать жертве отвечать посреди "постановки".
+    # мешать жертве отвечать посреди "постановки". Команда уже удалена
+    # выше, никакого отдельного анонса не отправляется — сразу идёт сам
+    # сценарий.
     try:
         await context.bot.restrict_chat_member(
             chat_id=chat.id,
