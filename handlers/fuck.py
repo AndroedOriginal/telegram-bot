@@ -47,8 +47,7 @@ async def fuck_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    # ВАЖНО: в отличие от остальных команд, /fuck НИКОГДА не удаляется
-    # после обработки — она должна оставаться на виду как часть шутки.
+    message = update.message
     chat = update.effective_chat
     user = update.effective_user
 
@@ -60,6 +59,11 @@ async def fuck_command(
     is_admin = user.id in admin_ids
 
     args = list(context.args) if context.args else []
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
     # =========================
     # ВКЛ/ВЫКЛ — ТОЛЬКО ВЛАДЕЛЕЦ ЧАТА
@@ -145,8 +149,20 @@ async def fuck_command(
     plot = random.choice(plots)
     safety_seconds = int(len(plot) * (_MAX_DELAY + 1) + 15)
 
-    # Мут без какого-либо сообщения об этом — тихо, чтобы не спойлерить
-    # шутку и не мешать жертве отвечать посреди "постановки".
+    mention = f"@{display_name}" if display_name else str(target_id)
+    sender_mention = f"@{user.username}" if user.username else user.first_name
+
+    # Публичный "анонс" перед постановкой — вместо буквального названия
+    # команды используем тему проклятия, в которую и так одеты все сценарии.
+    try:
+        await chat.send_message(
+            f"{sender_mention} насылает проклятие на {mention}."
+        )
+    except Exception as e:
+        print(f"FUCK ANNOUNCE ERROR: {repr(e)}")
+
+    # Мут без какого-либо отдельного сообщения об этом — тихо, чтобы не
+    # мешать жертве отвечать посреди "постановки".
     try:
         await context.bot.restrict_chat_member(
             chat_id=chat.id,
@@ -160,7 +176,7 @@ async def fuck_command(
     except Exception as e:
         print(f"FUCK MUTE ERROR: {target_id} | {repr(e)}")
 
-    mention = f"@{display_name}" if display_name else str(target_id)
+    await asyncio.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
 
     for line in plot:
         try:
