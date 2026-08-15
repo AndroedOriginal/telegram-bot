@@ -27,20 +27,22 @@ def _save(data):
         )
 
 
-# chat_id (str) -> bool. По умолчанию (запись отсутствует) — выключено.
+# chat_id (str) -> bool. Выключен по умолчанию в любом чате.
 _settings = _load()
 
 
-def is_nudesday_enabled(chat_id):
-    return bool(_settings.get(str(chat_id)))
+def _key(chat_id):
+    return str(chat_id)
 
 
-def set_nudesday_enabled(chat_id, enabled):
-    _settings[str(chat_id)] = enabled
+def set_nudesday(chat_id, enabled):
+    _settings[_key(chat_id)] = bool(enabled)
     _save(_settings)
 
 
-def get_all_nudesday_chats():
-    return [
-        int(chat_id) for chat_id, enabled in _settings.items() if enabled
-    ]
+def is_nudesday_enabled(chat_id):
+    return bool(_settings.get(_key(chat_id), False))
+
+
+def get_enabled_chats():
+    return [key for key, enabled in _settings.items() if enabled]

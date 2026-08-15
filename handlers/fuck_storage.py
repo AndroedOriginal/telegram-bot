@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from utils.paths import data_path
 
-FILE = data_path("fuck.json")
+FILE = data_path("fuck_toggle.json")
 
 
 def _load():
@@ -28,42 +28,46 @@ def _save(data):
         )
 
 
-# chat_id (str) -> {"enabled": bool, "until": iso-строка или None}.
-# По умолчанию (запись отсутствует) — команда выключена.
-_settings = _load()
+# По умолчанию /fuck выключен в любом чате, пока владелец чата явно
+# не включит его командой "fuck on"/"fuck on <время>".
+_toggle = _load()
 
 
 def _key(chat_id):
     return str(chat_id)
 
 
-def set_fuck_enabled(chat_id, until=None):
+def set_fuck_toggle(chat_id, until):
     """
     until — aware datetime (UTC) для временного включения либо None
     для включения навсегда.
     """
-    _settings[_key(chat_id)] = {
-        "enabled": True,
+    _toggle[_key(chat_id)] = {
         "until": until.isoformat() if until else None
     }
 
-    _save(_settings)
+    _save(_toggle)
 
 
-def set_fuck_disabled(chat_id):
-    _settings[_key(chat_id)] = {"enabled": False, "until": None}
-    _save(_settings)
+def disable_fuck(chat_id):
+    key = _key(chat_id)
+
+    if key in _toggle:
+        del _toggle[key]
+        _save(_toggle)
 
 
 def is_fuck_enabled(chat_id):
     """
-    True, если команда сейчас включена в этом чате (навсегда либо в
-    рамках ещё не истёкшего временного окна). Истёкшее временное окно
-    автоматически выключает команду при первой же проверке.
+    True, если /fuck сейчас включён в чате явным тумблером владельца.
+    Просроченное временное включение автоматически убирается из
+    хранилища. Логика "нюдсочетверга" (доступ по дням недели) живёт
+    отдельно в handlers/fuck.py и сюда не относится.
     """
-    entry = _settings.get(_key(chat_id))
+    key = _key(chat_id)
+    entry = _toggle.get(key)
 
-    if entry is None or not entry.get("enabled"):
+    if entry is None:
         return False
 
     until = entry.get("until")
@@ -74,7 +78,7 @@ def is_fuck_enabled(chat_id):
     if datetime.fromisoformat(until) > datetime.now(timezone.utc):
         return True
 
-    _settings[_key(chat_id)] = {"enabled": False, "until": None}
-    _save(_settings)
+    del _toggle[key]
+    _save(_toggle)
 
     return False

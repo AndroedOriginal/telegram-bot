@@ -1,81 +1,115 @@
 import asyncio
-import json
 import random
 from datetime import datetime, timedelta, timezone
 
+import pytz
+
 from telegram import Update, ChatPermissions
-from telegram.constants import ChatMemberStatus
 from telegram.ext import ContextTypes
 
-from handlers.mute import MUTE_PERMISSIONS
-from handlers.fuck_storage import (
-    is_fuck_enabled,
-    set_fuck_enabled,
-    set_fuck_disabled,
-)
-from handlers.immunity_storage import is_immune
-from utils.targeting import resolve_target
 from utils.duration import parse_duration_seconds
-from utils.paths import data_path
+from utils.targeting import resolve_target
+from handlers.mute import MUTE_PERMISSIONS
+from handlers.immunity_storage import is_immune
+from handlers.fuck_storage import set_fuck_toggle, disable_fuck, is_fuck_enabled
+from handlers.nudesday_storage import is_nudesday_enabled
+from handlers.plots_storage import get_random_plot
 
 
-PLOTS_FILE = data_path("fuck_plots.json")
+MOSCOW_TZ = pytz.timezone("Europe/Moscow")
 
-# Небольшая случайная пауза между сообщениями "постановки" — чтобы они
-# не прилетали одним пакетом, а выглядели так, будто их печатают по ходу.
-_MIN_DELAY = 1.2
-_MAX_DELAY = 2.4
+# Задержка между сообщениями сценария, чтобы они не пришли одним пакетом.
+_MIN_DELAY = 0.3
+_MAX_DELAY = 0.7
 
 
-def _load_plots():
+def _is_thursday_now():
+    return datetime.now(MOSCOW_TZ).weekday() == 3
+
+
+async def _run_joke(context, chat_id, user_id):
+    """
+    Мутит цель, шлёт сценарий сообщение за сообщением с небольшой
+    паузой, потом снимает мут. Всё без единого служебного сообщения
+    от бота о муте/размуте — это часть шутки, а не модерации.
+    """
+    plot = get_random_plot()
+
+    if not plot:
+        print("FUCK: библиотека сценариев пуста — /addplot, чтобы добавить")
+        return
+
+    # На случай, если бот упадёт/перезапустится посреди сценария — мут
+    # снимется сам по истечении разумного запаса времени, а не останется
+    # навсегда. Обычно же ниже мы снимаем его вручную сразу после
+    # последнего сообщения.
+    safety_seconds = int(len(plot) * (_MAX_DELAY + 1)) + 15
+    until_date = datetime.now(timezone.utc) + timedelta(seconds=safety_seconds)
+
     try:
-        with open(PLOTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f).get("plots", [])
+        await context.bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            permissions=MUTE_PERMISSIONS,
+            until_date=until_date
+        )
     except Exception as e:
-        print(f"FUCK PLOTS LOAD ERROR: {repr(e)}")
-        return []
+        print(f"FUCK MUTE ERROR: {user_id} | {repr(e)}")
+        return
 
+    print(f"FUCK: {user_id} в чате {chat_id} | сценарий из {len(plot)} сообщ.")
 
-def _is_creator(user_id, admins):
-    return any(
-        admin.user.id == user_id and admin.status == ChatMemberStatus.OWNER
-        for admin in admins
-    )
+    for line in plot:
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=line)
+        except Exception as e:
+            print(f"FUCK SEND ERROR: {chat_id} | {repr(e)}")
+
+        await asyncio.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
+
+    try:
+        await context.bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            permissions=ChatPermissions.all_permissions()
+        )
+    except Exception as e:
+        print(f"FUCK UNMUTE ERROR: {user_id} | {repr(e)}")
 
 
 async def fuck_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-    message = update.message
+    message = update.effective_message
     chat = update.effective_chat
-    user = update.effective_user
-
-    if chat.type not in ("group", "supergroup"):
-        return
+    actor = update.effective_user
 
     admins = await context.bot.get_chat_administrators(chat.id)
-    admin_ids = [admin.user.id for admin in admins]
-    is_admin = user.id in admin_ids
+    admin_ids = [a.user.id for a in admins]
+    owner_id = next(
+        (a.user.id for a in admins if a.status == "creator"),
+        None
+    )
 
     args = list(context.args) if context.args else []
 
-    try:
-        await message.delete()
-    except Exception:
-        pass
-
-    # =========================
-    # ВКЛ/ВЫКЛ — ТОЛЬКО ВЛАДЕЛЕЦ ЧАТА
-    # =========================
+    # =========================================================
+    # "fuck on" / "fuck off" — тумблер, доступен только владельцу чата
+    # =========================================================
 
     if args and args[0].lower() in ("on", "off"):
-        if not _is_creator(user.id, admins):
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        if actor.id != owner_id:
             return
 
         if args[0].lower() == "off":
-            set_fuck_disabled(chat.id)
-            await chat.send_message("Команда «fuck» выключена в этом чате.")
+            disable_fuck(chat.id)
+            await chat.send_message("/fuck выключен в этом чате.")
             return
 
         until = None
@@ -86,109 +120,60 @@ async def fuck_command(
 
             if seconds is None:
                 await chat.send_message(
-                    "Неверный формат времени. Примеры: 30s, 1m, 2h, 1d"
+                    "Неверный формат времени. Примеры: 30s, 1m, 2h, 1d, 1y"
                 )
                 return
 
             until = datetime.now(timezone.utc) + timedelta(seconds=seconds)
             phrase = f"на {args[1].lower()}"
 
-        set_fuck_enabled(chat.id, until)
-
-        await chat.send_message(
-            f"Команда «fuck» включена в этом чате {phrase}."
-        )
+        set_fuck_toggle(chat.id, until)
+        await chat.send_message(f"/fuck включён {phrase}.")
         return
 
-    # =========================
-    # САМА ШУТКА
-    # =========================
+    # =========================================================
+    # Сама шутка
+    # =========================================================
 
-    if not is_fuck_enabled(chat.id):
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    is_admin = actor.id in admin_ids
+
+    # Доступ: если в чате включён нюдсочетверг — админы могут всегда,
+    # обычные участники только по четвергам. Если нюдсочетверг выключен —
+    # действует обычный тумблер /fuck (на/навсегда/выкл), одинаковый
+    # для всех.
+    if is_nudesday_enabled(chat.id):
+        allowed = is_admin or _is_thursday_now()
+    else:
+        allowed = is_fuck_enabled(chat.id)
+
+    if not allowed:
         return
 
-    target_id, display_name, _args, error = await resolve_target(
-        update, context, admin_ids
+    user_id, _display_name, _rest, error = await resolve_target(
+        update,
+        context,
+        admin_ids
     )
 
     if error:
         await chat.send_message(error)
         return
 
-    if target_id == context.bot.id:
+    if user_id == context.bot.id or user_id == actor.id:
         return
 
-    target_is_admin = target_id in admin_ids
-
-    # Обычный участник не может использовать команду на админе,
-    # админы могут использовать её друг на друге.
-    if target_is_admin and not is_admin:
-        await chat.send_message(
-            "Обычный участник не может использовать эту команду "
-            "на администраторе."
-        )
+    # Обычные участники не могут применить команду на админов —
+    # админы друг на друге могут.
+    if not is_admin and user_id in admin_ids:
         return
 
-    # Иммунитет защищает от этой команды всегда, даже от админов.
-    if is_immune(chat.id, target_id):
-        who = f"@{display_name}" if display_name else str(target_id)
-
-        await chat.send_message(
-            f"У {who} есть иммунитет — эта команда на него не действует."
-        )
+    # Иммунитет защищает даже от админов.
+    if is_immune(chat.id, user_id):
         return
 
-    plots = _load_plots()
-
-    if not plots:
-        await chat.send_message(
-            "Не нашлось ни одного сценария для этой команды."
-        )
-        return
-
-    plot = random.choice(plots)
-    safety_seconds = int(len(plot) * (_MAX_DELAY + 1) + 15)
-
-    mention = f"@{display_name}" if display_name else str(target_id)
-
-    # Мут без какого-либо отдельного сообщения об этом — тихо, чтобы не
-    # мешать жертве отвечать посреди "постановки". Команда уже удалена
-    # выше, никакого отдельного анонса не отправляется — сразу идёт сам
-    # сценарий.
-    try:
-        await context.bot.restrict_chat_member(
-            chat_id=chat.id,
-            user_id=target_id,
-            permissions=MUTE_PERMISSIONS,
-            until_date=(
-                datetime.now(timezone.utc)
-                + timedelta(seconds=safety_seconds)
-            )
-        )
-    except Exception as e:
-        print(f"FUCK MUTE ERROR: {target_id} | {repr(e)}")
-
-    await asyncio.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
-
-    for line in plot:
-        try:
-            await chat.send_message(line.replace("{target}", mention))
-        except Exception as e:
-            print(f"FUCK SEND ERROR: {repr(e)}")
-
-        await asyncio.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
-
-    # Размут тоже без сообщения — по той же причине.
-    try:
-        await context.bot.restrict_chat_member(
-            chat_id=chat.id,
-            user_id=target_id,
-            permissions=ChatPermissions.all_permissions()
-        )
-    except Exception as e:
-        print(f"FUCK UNMUTE ERROR: {target_id} | {repr(e)}")
-
-    print(
-        f"FUCK: {user.id} использовал команду на {target_id} "
-        f"в чате {chat.id}"
-    )
+    context.application.create_task(_run_joke(context, chat.id, user_id))

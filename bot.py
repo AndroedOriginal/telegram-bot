@@ -42,7 +42,8 @@ from handlers.ban import ban_command, unban_callback, unban_command
 from handlers.mute import mute_command, cancel_mute_callback
 from handlers.immunity import immunity_command, cancel_immunity_callback
 from handlers.fuck import fuck_command
-from handlers.nudesday import init_nudesday, nudesday_command
+from handlers.nudesday import nudesday_command, init_nudesday
+from handlers.plots import addplot_command, setplot_command, delplot_command
 from handlers.owner import owner_command
 from utils.targeting import remember_message_sender
 from utils.permissions import on_chat_member_changed
@@ -253,6 +254,14 @@ application.add_handler(
 
 application.add_handler(
     CommandHandler(
+        "owner",
+        owner_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
         "fuck",
         fuck_command
     )
@@ -269,8 +278,24 @@ application.add_handler(
 
 application.add_handler(
     CommandHandler(
-        "owner",
-        owner_command
+        "addplot",
+        addplot_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "setplot",
+        setplot_command
+    )
+)
+
+
+application.add_handler(
+    CommandHandler(
+        "delplot",
+        delplot_command
     )
 )
 
