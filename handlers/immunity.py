@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes
 from html import escape
 from datetime import datetime, timedelta, timezone
 
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE
 from utils.duration import parse_duration_seconds
 from handlers.immunity_storage import set_immunity, remove_immunity
 
@@ -126,6 +126,13 @@ async def immunity_command(
 
     if error:
         await chat.send_message(error)
+        return
+
+    if user_id == EVERYONE:
+        await chat.send_message(
+            "❌ /immunity нельзя выдать или снять сразу у всех — "
+            "укажи конкретного пользователя."
+        )
         return
 
     username = escape(display_name or str(user_id))

@@ -7,8 +7,35 @@ from telegram import (
 from telegram.ext import ContextTypes
 from html import escape
 
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE, get_everyone_ids
 from handlers.immunity_storage import is_immune
+
+
+async def _bulk_ban(context, chat, admin_ids, args):
+    reason = " ".join(args) or "Причина не указана"
+    ids = await get_everyone_ids(context, chat.id, admin_ids)
+
+    banned = 0
+
+    for uid in ids:
+        try:
+            await context.bot.ban_chat_member(chat_id=chat.id, user_id=uid)
+            banned += 1
+        except Exception as e:
+            print(f"BAN EVERYONE ERROR: {uid} | {repr(e)}")
+
+    print(
+        f"BAN EVERYONE: {banned} участников в чате {chat.id} | "
+        f"причина: {reason}"
+    )
+
+    await chat.send_message(
+        text=(
+            f"Заблокировано участников: {banned}.\n\n"
+            f"<b>Причина:</b> {escape(reason)}"
+        ),
+        parse_mode="HTML"
+    )
 
 
 async def ban_command(
@@ -49,6 +76,10 @@ async def ban_command(
 
     if error:
         await chat.send_message(error)
+        return
+
+    if target_id == EVERYONE:
+        await _bulk_ban(context, chat, admin_ids, args)
         return
 
     # нельзя банить админов
@@ -137,6 +168,13 @@ async def unban_command(
 
     if error:
         await chat.send_message(error)
+        return
+
+    if target_id == EVERYONE:
+        await chat.send_message(
+            "❌ /unban @everyone не поддерживается — бот не хранит "
+            "список забаненных пользователей."
+        )
         return
 
     try:

@@ -45,6 +45,7 @@ from handlers.fuck import fuck_command
 from handlers.nudesday import nudesday_command, init_nudesday
 from handlers.plots import addplot_command, setplot_command, delplot_command
 from handlers.owner import owner_command
+from handlers.everyone import everyone_mention
 from utils.targeting import remember_message_sender
 from utils.permissions import on_chat_member_changed
 
@@ -336,6 +337,19 @@ application.add_handler(
     CommandHandler(
         "events",
         events_command
+    )
+)
+
+
+# "@everyone" где угодно в тексте сообщения — упоминает всех известных
+# участников чата. Регистрируется ПОСЛЕ всех CommandHandler'ов выше
+# (ban/mute/warn/unmute/unban/unwarn/...), чтобы "/mute @everyone 10m"
+# и подобные команды по-прежнему обрабатывались своими хендлерами:
+# в одной group побеждает первый подошедший обработчик.
+application.add_handler(
+    MessageHandler(
+        filters.TEXT & filters.Regex(r"(?i)@everyone"),
+        everyone_mention
     )
 )
 

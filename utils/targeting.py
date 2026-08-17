@@ -2,8 +2,13 @@ import json
 import os
 
 from utils.paths import data_path
+from handlers.immunity_storage import is_immune
 
 FILE = data_path("user_directory.json")
+
+# Спец-значение "цели" команды модерации, означающее "все известные боту
+# обычные участники чата" — см. resolve_target и get_everyone_ids.
+EVERYONE = "everyone"
 
 
 def _load():
@@ -49,6 +54,46 @@ def get_id_by_username(username):
     return _directory.get(username.lower())
 
 
+def get_all_known_ids():
+    """Все ID пользователей, которых бот когда-либо видел (запомнил по @username)."""
+    return set(_directory.values())
+
+
+async def get_everyone_ids(context, chat_id, admin_ids, exclude_immune=True):
+    """
+    Возвращает ID всех обычных участников чата, которых бот знает по
+    локальному справочнику user_directory и которые сейчас реально
+    состоят в чате. Админы всегда исключены — "@everyone" в командах
+    модерации на них не действует. По умолчанию исключены и обладатели
+    иммунитета (exclude_immune=False — для снятия ограничений, где
+    иммунитет не должен быть препятствием).
+
+    Т.к. Bot API не даёт способа перечислить всех участников чата,
+    список ограничен теми, кого бот хотя бы раз видел пишущим — как и
+    везде в этом боте при поиске цели по @username.
+    """
+    result = set()
+
+    for user_id in get_all_known_ids():
+        if user_id in admin_ids:
+            continue
+
+        if exclude_immune and is_immune(chat_id, user_id):
+            continue
+
+        try:
+            member = await context.bot.get_chat_member(chat_id, user_id)
+        except Exception:
+            continue
+
+        if member.status in ("left", "kicked") or member.user.is_bot:
+            continue
+
+        result.add(user_id)
+
+    return result
+
+
 async def remember_message_sender(
     update,
     context
@@ -68,10 +113,20 @@ async def resolve_target(update, context, admin_ids):
     Возвращает (user_id, display_name, remaining_args, error).
     Если пользователь не определён, user_id будет None, а error —
     готовый текст, который можно отправить администратору.
+
+    Отдельно поддерживается "@everyone"/"everyone" первым аргументом —
+    тогда user_id будет равен EVERYONE, а вызывающая команда должна
+    сама решить, как применить действие ко всем участникам сразу
+    (см. get_everyone_ids). Проверяется раньше ответа на сообщение,
+    чтобы явное "@everyone" не терялось, если команду случайно
+    отправили ответом на чьё-то сообщение.
     """
 
     message = update.message
     args = list(context.args) if context.args else []
+
+    if args and args[0].lower() in ("@everyone", "everyone"):
+        return EVERYONE, "everyone", args[1:], None
 
     if message.reply_to_message:
         target = message.reply_to_message.from_user

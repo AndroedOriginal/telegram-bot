@@ -7,7 +7,7 @@ from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
 from utils.duration import parse_duration_seconds
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE
 from handlers.mute import MUTE_PERMISSIONS
 from handlers.immunity_storage import is_immune
 from handlers.fuck_storage import set_fuck_toggle, disable_fuck, is_fuck_enabled
@@ -191,6 +191,9 @@ async def fuck_command(
 
     if error:
         await chat.send_message(error)
+        return
+
+    if user_id == EVERYONE:
         return
 
     if user_id == context.bot.id or user_id == actor.id:

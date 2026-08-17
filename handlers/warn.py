@@ -14,8 +14,56 @@ from handlers.storage import (
     remove_warn,
     reset_warn
 )
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE, get_everyone_ids
 from handlers.immunity_storage import is_immune
+
+
+async def _bulk_warn(context, chat_id, admin_ids, args):
+    reason = " ".join(args) or "Причина не указана"
+    ids = await get_everyone_ids(context, chat_id, admin_ids)
+
+    warned = 0
+    muted_for_third = 0
+
+    for uid in ids:
+        count = add_warn(chat_id, uid)
+
+        if count >= 3:
+            try:
+                await context.bot.restrict_chat_member(
+                    chat_id=chat_id,
+                    user_id=uid,
+                    permissions=ChatPermissions(can_send_messages=False),
+                    until_date=datetime.now(timezone.utc) + timedelta(minutes=10)
+                )
+            except Exception as e:
+                print(f"WARN EVERYONE MUTE ERROR: {uid} | {repr(e)}")
+
+            reset_warn(chat_id, uid)
+            muted_for_third += 1
+        else:
+            warned += 1
+
+    total = warned + muted_for_third
+
+    print(
+        f"WARN EVERYONE: {total} участников в чате {chat_id} | "
+        f"замучено за 3/3: {muted_for_third} | причина: {reason}"
+    )
+
+    text = (
+        f"Выдано предупреждений: {total}.\n\n"
+        f"<b>Причина:</b> {escape(reason)}"
+    )
+
+    if muted_for_third:
+        text += f"\n\nИз них замучено на 10 минут за 3/3: {muted_for_third}."
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        parse_mode="HTML"
+    )
 
 
 async def warn_command(
@@ -50,6 +98,10 @@ async def warn_command(
 
     if error:
         await update.effective_chat.send_message(error)
+        return
+
+    if user_id == EVERYONE:
+        await _bulk_warn(context, chat_id, admin_ids, args)
         return
 
     # иммунитет защищает от варна (но не от antispam/antirepeat)
@@ -143,6 +195,21 @@ async def unwarn_command(
 
     if error:
         await update.effective_chat.send_message(error)
+        return
+
+    if user_id == EVERYONE:
+        # Иммунитет тут не помеха — он защищает от выдачи варна,
+        # а не от его снятия.
+        ids = await get_everyone_ids(
+            context, chat_id, admin_ids, exclude_immune=False
+        )
+
+        for uid in ids:
+            remove_warn(chat_id, uid)
+
+        await update.effective_chat.send_message(
+            f"✅ Предупреждения сняты со всех участников ({len(ids)})."
+        )
         return
 
     count = remove_warn(chat_id, user_id)

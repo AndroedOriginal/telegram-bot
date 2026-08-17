@@ -9,7 +9,7 @@ from html import escape
 from datetime import datetime, timedelta, timezone
 
 from utils.duration import parse_duration_seconds
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE, get_everyone_ids
 from handlers.immunity_storage import is_immune
 
 
@@ -27,6 +27,52 @@ MUTE_PERMISSIONS = ChatPermissions(
     can_send_other_messages=False,
     can_add_web_page_previews=False
 )
+
+
+async def _bulk_mute(context, chat, admin_ids, args):
+    until_date = None
+    duration_text = "навсегда"
+    reason_args = args
+
+    if args:
+        seconds = parse_duration_seconds(args[0].lower())
+
+        if seconds is not None:
+            until_date = datetime.now(timezone.utc) + timedelta(seconds=seconds)
+            duration_text = args[0].lower()
+            reason_args = args[1:]
+
+    reason = " ".join(reason_args) or "Причина не указана"
+
+    ids = await get_everyone_ids(context, chat.id, admin_ids)
+    muted = 0
+
+    for uid in ids:
+        try:
+            await context.bot.restrict_chat_member(
+                chat_id=chat.id,
+                user_id=uid,
+                permissions=MUTE_PERMISSIONS,
+                until_date=until_date
+            )
+            muted += 1
+        except Exception as e:
+            print(f"MUTE EVERYONE ERROR: {uid} | {repr(e)}")
+
+    phrase = "навсегда" if duration_text == "навсегда" else f"на {duration_text}"
+
+    print(
+        f"MUTE EVERYONE: {muted} участников в чате {chat.id} | "
+        f"время: {duration_text} | причина: {reason}"
+    )
+
+    await chat.send_message(
+        text=(
+            f"Замучено участников: {muted} {phrase}.\n\n"
+            f"<b>Причина:</b> {escape(reason)}"
+        ),
+        parse_mode="HTML"
+    )
 
 
 async def mute_command(
@@ -68,6 +114,10 @@ async def mute_command(
 
     if error:
         await chat.send_message(error)
+        return
+
+    if user_id == EVERYONE:
+        await _bulk_mute(context, chat, admin_ids, args)
         return
 
     # =========================

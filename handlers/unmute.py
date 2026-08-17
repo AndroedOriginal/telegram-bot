@@ -1,7 +1,7 @@
 from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
-from utils.targeting import resolve_target
+from utils.targeting import resolve_target, EVERYONE, get_everyone_ids
 
 
 async def unmute_command(
@@ -44,11 +44,37 @@ async def unmute_command(
         await update.effective_chat.send_message(error)
         return
 
+    chat_id = update.effective_chat.id
+
+    if user_id == EVERYONE:
+        # Иммунитет тут не помеха — он защищает от наложения мута,
+        # а не от его снятия.
+        ids = await get_everyone_ids(
+            context, chat_id, admin_ids, exclude_immune=False
+        )
+
+        for uid in ids:
+            try:
+                await context.bot.restrict_chat_member(
+                    chat_id=chat_id,
+                    user_id=uid,
+                    permissions=ChatPermissions.all_permissions()
+                )
+            except Exception as e:
+                print(f"UNMUTE EVERYONE ERROR: {uid} | {repr(e)}")
+
+        print(f"UNMUTE EVERYONE: {len(ids)} участников в чате {chat_id}")
+
+        await update.effective_chat.send_message(
+            f"✅ Мут снят со всех участников ({len(ids)})."
+        )
+        return
+
     # Снятие мута.
     # Восстанавливаем ВСЕ права, а не только текст — mute_command
     # отключает их все, иначе часть ограничений осталась бы навсегда.
     await context.bot.restrict_chat_member(
-        chat_id=update.effective_chat.id,
+        chat_id=chat_id,
         user_id=user_id,
         permissions=ChatPermissions.all_permissions()
     )
